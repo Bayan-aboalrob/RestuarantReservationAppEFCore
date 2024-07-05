@@ -1,89 +1,34 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestaurantReservation.Db;
+using RestaurantReservation.Db.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
 
 namespace RestaurantReservation
 {
     public class Program
     {
+        private static ServiceProvider _serviceProvider;
+
         static async Task Main(string[] args)
         {
-            Console.WriteLine("Welcome to the Restaurant Reservation Application !");
+            Console.WriteLine("Welcome to the Restaurant Reservation Application!");
 
-            using (var context = new RestaurantReservationDbContext())
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+
+            using (var scope = _serviceProvider.CreateScope())
             {
-                await context.Database.EnsureCreatedAsync();
-                /*
-
-                var newCustomer = new Customer
-                {
-                    FirstName = "Alex",
-                    LastName = "Johnson",
-                    Email = "alex.johnson@example.com", 
-                    PhoneNumber = "123-456-7891"
-                };
-                await AddCustomerAsync(context, newCustomer);
-                int customerId = newCustomer.CustomerId;
-
-                var newEmployee = new Employee { FirstName = "Emily", LastName = "Brown", Position = "Waiter", RestaurantId = 3 };
-                await AddEmployeeAsync(context, newEmployee);
-                int employeeId = newEmployee.EmployeeId;
-
-                var newMenuItem = new MenuItem { Name = "Salad", Description = "Greek Salad", Price = 7.99m, RestaurantId = 3 };
-                await AddMenuItemAsync(context, newMenuItem);
-                int menuItemId = newMenuItem.ItemId;
-
-                var newReservation = new Reservation { RestaurantId = 3, ReservationDate = DateTime.Now.AddDays(1), PartySize = 4, CustomerId = customerId, TableId = 4 };
-                await AddReservationAsync(context, newReservation);
-                int reservationId = newReservation.ReservationId;
-
-                var newOrder = new Order { EmployeeId = employeeId, OrderDate = DateTime.Now, TotalAmount = 29.99m, ReservationId = reservationId };
-                await AddOrderAsync(context, newOrder);
-                int orderId = newOrder.OrderId;
-
-                var newOrderItem = new OrderItem { ItemId = menuItemId, Quantity = 2, OrderId = orderId };
-                await AddOrderItemAsync(context, newOrderItem);
-                int orderItemId = newOrderItem.OrderItemId;
-
-                var newRestaurant = new Restaurant { Name = "New Sample Restaurant", Address = "Sample Address", PhoneNumber = "999-999-9988", OpeningHours = "8 AM - 8 PM" };
-                await AddRestaurantAsync(context, newRestaurant);
-                int restaurantId = newRestaurant.RestaurantId;
-
-                var newTable = new Table { Capacity = 5, RestaurantId = restaurantId };
-                await AddTableAsync(context, newTable);
-                int tableId = newTable.TableId;
-
-                await UpdateCustomerAsync(context, customerId, "Michael", "Smith", "michael.smith@example.com", "098-765-4321");
-
-                await UpdateEmployeeAsync(context, employeeId, "Emily", "Jones", "Chef", 3);
-
-                await UpdateMenuItemAsync(context, menuItemId, "Salad", "Caesar Salad", 8.99m, 3);
-
-                await UpdateReservationAsync(context, reservationId, DateTime.Now.AddDays(2), 5, customerId, 3, 4);
-
-                await UpdateOrderAsync(context, orderId, DateTime.Now.AddMinutes(30), 34.99m, employeeId, reservationId);
-
-                await UpdateOrderItemAsync(context, orderItemId, menuItemId, 3, orderId);
-
-                await UpdateRestaurantAsync(context, restaurantId, "Updated Sample Restaurant", "Updated Sample Address", "888-888-8877", "9 AM - 9 PM");
-
-                await UpdateTableAsync(context, tableId, 6, restaurantId);
-
-                await DeleteOrderItemAsync(context, orderItemId);
-
-                await DeleteOrderAsync(context, orderId);
-
-                await DeleteReservationAsync(context, reservationId);
-
-                await DeleteCustomerAsync(context, customerId);
-
-                await DeleteEmployeeAsync(context, employeeId);
-
-                await DeleteMenuItemAsync(context, menuItemId);
-
-                await DeleteRestaurantAsync(context, restaurantId);
-
-                await DeleteTableAsync(context, tableId);
-                */
+                var customerRepository = scope.ServiceProvider.GetRequiredService<CustomerRepository>();
+                var employeeRepository = scope.ServiceProvider.GetRequiredService<EmployeeRepository>();
+                var menuItemRepository = scope.ServiceProvider.GetRequiredService<MenuItemRepository>();
+                var orderRepository = scope.ServiceProvider.GetRequiredService<OrderRepository>();
+                var orderItemRepository = scope.ServiceProvider.GetRequiredService<OrderItemRepository>();
+                var reservationRepository = scope.ServiceProvider.GetRequiredService<ReservationRepository>();
+                var restaurantRepository = scope.ServiceProvider.GetRequiredService<RestaurantRepository>();
+                var tableRepository = scope.ServiceProvider.GetRequiredService<TableRepository>();
 
                 bool exit = false;
 
@@ -99,20 +44,23 @@ namespace RestaurantReservation
                     Console.WriteLine("7. List Employees With Restaurant Details");
                     Console.WriteLine("8. Calculate Total Revenue by Restaurant");
                     Console.WriteLine("9. Get Customers With Large Reservations");
-                    Console.WriteLine("10. Exit");
+                    Console.WriteLine("10. Add Entity");
+                    Console.WriteLine("11. Update Entity");
+                    Console.WriteLine("12. Delete Entity");
+                    Console.WriteLine("13. Exit");
 
                     var choice = Console.ReadLine();
 
                     switch (choice)
                     {
                         case "1":
-                            await ListManagers(context);
+                            await ListManagers(employeeRepository);
                             break;
                         case "2":
                             Console.Write("Enter Customer ID: ");
                             if (int.TryParse(Console.ReadLine(), out int customerId))
                             {
-                                await GetReservationsByCustomer(context, customerId);
+                                await GetReservationsByCustomer(customerRepository, customerId);
                             }
                             else
                             {
@@ -123,7 +71,7 @@ namespace RestaurantReservation
                             Console.Write("Enter Reservation ID: ");
                             if (int.TryParse(Console.ReadLine(), out int reservationId))
                             {
-                                await ListOrdersAndMenuItems(context, reservationId);
+                                await ListOrdersAndMenuItems(orderRepository, reservationId);
                             }
                             else
                             {
@@ -134,7 +82,7 @@ namespace RestaurantReservation
                             Console.Write("Enter Reservation ID: ");
                             if (int.TryParse(Console.ReadLine(), out int resId))
                             {
-                                await ListOrderedMenuItems(context, resId);
+                                await ListOrderedMenuItems(orderRepository, resId);
                             }
                             else
                             {
@@ -145,7 +93,7 @@ namespace RestaurantReservation
                             Console.Write("Enter Employee ID: ");
                             if (int.TryParse(Console.ReadLine(), out int employeeId))
                             {
-                                await CalculateAverageOrderAmount(context, employeeId);
+                                await CalculateAverageOrderAmount(orderRepository, employeeId);
                             }
                             else
                             {
@@ -153,16 +101,16 @@ namespace RestaurantReservation
                             }
                             break;
                         case "6":
-                            await ListReservationsWithDetails(context);
+                            await ListReservationsWithDetails(reservationRepository);
                             break;
                         case "7":
-                            await ListEmployeesWithRestaurantDetails(context);
+                            await ListEmployeesWithRestaurantDetails(employeeRepository);
                             break;
                         case "8":
                             Console.Write("Enter Restaurant ID: ");
                             if (int.TryParse(Console.ReadLine(), out int restaurantId))
                             {
-                                decimal totalRevenue = await context.CalculateTotalRevenueAsync(restaurantId);
+                                decimal totalRevenue = await CalculateTotalRevenueAsync(restaurantRepository, restaurantId);
                                 Console.WriteLine($"Total Revenue for Restaurant {restaurantId}: {totalRevenue}");
                             }
                             else
@@ -174,7 +122,7 @@ namespace RestaurantReservation
                             Console.Write("Enter Minimum Party Size: ");
                             if (int.TryParse(Console.ReadLine(), out int partySize))
                             {
-                                await GetCustomersWithLargeReservations(context, partySize);
+                                await GetCustomersWithLargeReservations(customerRepository, partySize);
                             }
                             else
                             {
@@ -182,660 +130,43 @@ namespace RestaurantReservation
                             }
                             break;
                         case "10":
+                            await AddEntity(customerRepository, employeeRepository, menuItemRepository, orderRepository, orderItemRepository, reservationRepository, restaurantRepository, tableRepository);
+                            break;
+                        case "11":
+                            await UpdateEntity(customerRepository, employeeRepository, menuItemRepository, orderRepository, orderItemRepository, reservationRepository, restaurantRepository, tableRepository);
+                            break;
+                        case "12":
+                            await DeleteEntity(customerRepository, employeeRepository, menuItemRepository, orderRepository, orderItemRepository, reservationRepository, restaurantRepository, tableRepository);
+                            break;
+                        case "13":
                             exit = true;
                             break;
                         default:
                             Console.WriteLine("Invalid choice. Please try again.");
                             break;
-                     
-
                     }
                 }
-
             }
         }
 
-        // Here, I have added the Creates methods for creating new entities for each entity type
-        static async Task AddCustomerAsync(RestaurantReservationDbContext context, Customer newCustomer)
+        private static void ConfigureServices(IServiceCollection services)
         {
-            var existingCustomer = await context.Customers
-                .Where(c => c.Email == newCustomer.Email || c.PhoneNumber == newCustomer.PhoneNumber)
-                .FirstOrDefaultAsync();
+            services.AddDbContext<RestaurantReservationDbContext>(options =>
+                options.UseSqlServer("Data Source=DESKTOP-HOSEMG4;Initial Catalog=RestuarantReservationCoreApp;Integrated Security=True;TrustServerCertificate=True;"));
 
-            if (existingCustomer != null)
-            {
-                Console.WriteLine("A customer with the same email or phone number already exists.");
-                return;
-            }
-
-            context.Customers.Add(newCustomer);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Customer");
+            services.AddScoped<CustomerRepository>();
+            services.AddScoped<EmployeeRepository>();
+            services.AddScoped<MenuItemRepository>();
+            services.AddScoped<OrderRepository>();
+            services.AddScoped<OrderItemRepository>();
+            services.AddScoped<ReservationRepository>();
+            services.AddScoped<RestaurantRepository>();
+            services.AddScoped<TableRepository>();
         }
 
-        static async Task AddEmployeeAsync(RestaurantReservationDbContext context, Employee newEmployee)
+        private static async Task ListManagers(EmployeeRepository employeeRepository)
         {
-            // Check if the restaurant exists
-            var existingRestaurant = await context.Restaurants.FindAsync(newEmployee.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                Console.WriteLine("The specified restaurant does not exist.");
-                return;
-            }
-
-            var existingEmployee = await context.Employees
-                .Where(e => e.FirstName == newEmployee.FirstName && e.LastName == newEmployee.LastName && e.RestaurantId == newEmployee.RestaurantId)
-                .FirstOrDefaultAsync();
-
-            if (existingEmployee != null)
-            {
-                Console.WriteLine("An employee with the same name already exists in this restaurant.");
-                return;
-            }
-
-            context.Employees.Add(newEmployee);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Employee");
-        }
-
-        static async Task AddMenuItemAsync(RestaurantReservationDbContext context, MenuItem newMenuItem)
-        {
-            var existingRestaurant = await context.Restaurants.FindAsync(newMenuItem.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                Console.WriteLine("The specified restaurant does not exist.");
-                return;
-            }
-
-            var existingMenuItem = await context.MenuItems
-                .Where(m => m.Name == newMenuItem.Name && m.RestaurantId == newMenuItem.RestaurantId)
-                .FirstOrDefaultAsync();
-
-            if (existingMenuItem != null)
-            {
-                Console.WriteLine("A menu item with the same name already exists in this restaurant.");
-                return;
-            }
-
-            context.MenuItems.Add(newMenuItem);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Menu Item");
-        }
-
-        static async Task AddOrderAsync(RestaurantReservationDbContext context, Order newOrder)
-        {
-            var existingEmployee = await context.Employees.FindAsync(newOrder.EmployeeId);
-            if (existingEmployee == null)
-            {
-                Console.WriteLine("The specified employee does not exist.");
-                return;
-            }
-
-            var existingReservation = await context.Reservations.FindAsync(newOrder.ReservationId);
-            if (existingReservation == null)
-            {
-                Console.WriteLine("The specified reservation does not exist.");
-                return;
-            }
-
-            context.Orders.Add(newOrder);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Order");
-        }
-
-        static async Task AddOrderItemAsync(RestaurantReservationDbContext context, OrderItem newOrderItem)
-        {
-            var existingMenuItem = await context.MenuItems.FindAsync(newOrderItem.ItemId);
-            if (existingMenuItem == null)
-            {
-                Console.WriteLine("The specified menu item does not exist.");
-                return;
-            }
-
-            var existingOrder = await context.Orders.FindAsync(newOrderItem.OrderId);
-            if (existingOrder == null)
-            {
-                Console.WriteLine("The specified order does not exist.");
-                return;
-            }
-
-            context.OrderItems.Add(newOrderItem);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Order Item");
-        }
-
-        static async Task AddReservationAsync(RestaurantReservationDbContext context, Reservation newReservation)
-        {
-            var existingCustomer = await context.Customers.FindAsync(newReservation.CustomerId);
-            if (existingCustomer == null)
-            {
-                Console.WriteLine("The specified customer does not exist.");
-                return;
-            }
-
-            var existingRestaurant = await context.Restaurants.FindAsync(newReservation.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                Console.WriteLine("The specified restaurant does not exist.");
-                return;
-            }
-            var existingTable = await context.Tables.FindAsync(newReservation.TableId);
-            if (existingTable == null)
-            {
-                Console.WriteLine("The specified table does not exist.");
-                return;
-            }
-
-            context.Reservations.Add(newReservation);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Reservation");
-        }
-        static async Task AddRestaurantAsync(RestaurantReservationDbContext context, Restaurant newRestaurant)
-        {
-            var existingRestaurant = await context.Restaurants
-                .Where(r => r.Name == newRestaurant.Name)
-                .FirstOrDefaultAsync();
-
-            if (existingRestaurant != null)
-            {
-                Console.WriteLine("A restaurant with the same name already exists.");
-                return;
-            }
-
-            context.Restaurants.Add(newRestaurant);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Restaurant");
-        }
-
-        static async Task AddTableAsync(RestaurantReservationDbContext context, Table newTable)
-        {
-            var existingRestaurant = await context.Restaurants.FindAsync(newTable.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                Console.WriteLine("The specified restaurant does not exist.");
-                return;
-            }
-
-            context.Tables.Add(newTable);
-            await context.SaveChangesAsync();
-            Console.WriteLine("Created Table");
-        }
-
-        // Here, I have implemented the update methods for all entity types
-
-        static async Task UpdateCustomerAsync(RestaurantReservationDbContext context, int customerId, string newFirstName, string newLastName, string newEmail, string newPhoneNumber)
-        {
-            var customer = await context.Customers.FindAsync(customerId);
-            if (customer != null)
-            {
-                var existingCustomerWithEmail = await context.Customers.FirstOrDefaultAsync(c => c.Email == newEmail && c.CustomerId != customerId);
-                var existingCustomerWithPhone = await context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == newPhoneNumber && c.CustomerId != customerId);
-
-                if (existingCustomerWithEmail != null)
-                {
-                    Console.WriteLine("Email already exists for another customer.");
-                    return;
-                }
-
-                if (existingCustomerWithPhone != null)
-                {
-                    Console.WriteLine("Phone number already exists for another customer.");
-                    return;
-                }
-
-                customer.FirstName = newFirstName;
-                customer.LastName = newLastName;
-                customer.Email = newEmail;
-                customer.PhoneNumber = newPhoneNumber;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Customer");
-            }
-            else
-            {
-                Console.WriteLine("Customer not found.");
-            }
-        }
-
-        static async Task UpdateEmployeeAsync(RestaurantReservationDbContext context, int employeeId, string newFirstName, string newLastName, string newPosition, int newRestaurantId)
-        {
-            var employee = await context.Employees.FindAsync(employeeId);
-            if (employee != null)
-            {
-                var existingRestaurant = await context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    Console.WriteLine("The specified restaurant does not exist.");
-                    return;
-                }
-
-                var existingEmployee = await context.Employees
-                    .FirstOrDefaultAsync(e => e.FirstName == newFirstName && e.LastName == newLastName && e.RestaurantId == newRestaurantId && e.EmployeeId != employeeId);
-
-                if (existingEmployee != null)
-                {
-                    Console.WriteLine("An employee with the same name already exists in this restaurant.");
-                    return;
-                }
-
-                employee.FirstName = newFirstName;
-                employee.LastName = newLastName;
-                employee.Position = newPosition;
-                employee.RestaurantId = newRestaurantId;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Employee");
-            }
-            else
-            {
-                Console.WriteLine("Employee not found.");
-            }
-        }
-        static async Task UpdateMenuItemAsync(RestaurantReservationDbContext context, int menuItemId, string newName, string newDescription, decimal newPrice, int newRestaurantId)
-        {
-            var menuItem = await context.MenuItems.FindAsync(menuItemId);
-            if (menuItem != null)
-            {
-                var existingRestaurant = await context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    Console.WriteLine("The specified restaurant does not exist.");
-                    return;
-                }
-
-                var existingMenuItem = await context.MenuItems
-                    .FirstOrDefaultAsync(m => m.Name == newName && m.RestaurantId == newRestaurantId && m.ItemId != menuItemId);
-
-                if (existingMenuItem != null)
-                {
-                    Console.WriteLine("A menu item with the same name already exists in this restaurant.");
-                    return;
-                }
-
-                menuItem.Name = newName;
-                menuItem.Description = newDescription;
-                menuItem.Price = newPrice;
-                menuItem.RestaurantId = newRestaurantId;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Menu Item");
-            }
-            else
-            {
-                Console.WriteLine("Menu Item not found.");
-            }
-        }
-        static async Task UpdateOrderAsync(RestaurantReservationDbContext context, int orderId, DateTime newOrderDate, decimal newTotalAmount, int newEmployeeId, int newReservationId)
-        {
-            var order = await context.Orders.FindAsync(orderId);
-            if (order != null)
-            {
-                var existingEmployee = await context.Employees.FindAsync(newEmployeeId);
-                if (existingEmployee == null)
-                {
-                    Console.WriteLine("The specified employee does not exist.");
-                    return;
-                }
-
-                var existingReservation = await context.Reservations.FindAsync(newReservationId);
-                if (existingReservation == null)
-                {
-                    Console.WriteLine("The specified reservation does not exist.");
-                    return;
-                }
-
-                order.OrderDate = newOrderDate;
-                order.TotalAmount = newTotalAmount;
-                order.EmployeeId = newEmployeeId;
-                order.ReservationId = newReservationId;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Order");
-            }
-            else
-            {
-                Console.WriteLine("Order not found.");
-            }
-        }
-        static async Task UpdateOrderItemAsync(RestaurantReservationDbContext context, int orderItemId, int newItemId, int newQuantity, int newOrderId)
-        {
-            var orderItem = await context.OrderItems.FindAsync(orderItemId);
-            if (orderItem != null)
-            {
-                var existingMenuItem = await context.MenuItems.FindAsync(newItemId);
-                if (existingMenuItem == null)
-                {
-                    Console.WriteLine("The specified menu item does not exist.");
-                    return;
-                }
-
-                var existingOrder = await context.Orders.FindAsync(newOrderId);
-                if (existingOrder == null)
-                {
-                    Console.WriteLine("The specified order does not exist.");
-                    return;
-                }
-
-                orderItem.ItemId = newItemId;
-                orderItem.Quantity = newQuantity;
-                orderItem.OrderId = newOrderId;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Order Item");
-            }
-            else
-            {
-                Console.WriteLine("Order Item not found.");
-            }
-        }
-        static async Task UpdateReservationAsync(RestaurantReservationDbContext context, int reservationId, DateTime newReservationDate, int newPartySize, int newCustomerId, int newRestaurantId, int newTableId)
-        {
-            var reservation = await context.Reservations.FindAsync(reservationId);
-            if (reservation != null)
-            {
-                var existingCustomer = await context.Customers.FindAsync(newCustomerId);
-                if (existingCustomer == null)
-                {
-                    Console.WriteLine("The specified customer does not exist.");
-                    return;
-                }
-
-                var existingRestaurant = await context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    Console.WriteLine("The specified restaurant does not exist.");
-                    return;
-                }
-
-                var existingTable = await context.Tables.FindAsync(newTableId);
-                if (existingTable == null)
-                {
-                    Console.WriteLine("The specified table does not exist.");
-                    return;
-                }
-
-                reservation.ReservationDate = newReservationDate;
-                reservation.PartySize = newPartySize;
-                reservation.CustomerId = newCustomerId;
-                reservation.RestaurantId = newRestaurantId;
-                reservation.TableId = newTableId;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Reservation");
-            }
-            else
-            {
-                Console.WriteLine("Reservation not found.");
-            }
-        }
-        static async Task UpdateRestaurantAsync(RestaurantReservationDbContext context, int restaurantId, string newName, string newAddress, string newPhoneNumber, string newOpeningHours)
-        {
-            var restaurant = await context.Restaurants.FindAsync(restaurantId);
-            if (restaurant != null)
-            {
-                var existingRestaurant = await context.Restaurants
-                    .FirstOrDefaultAsync(r => r.Name == newName && r.RestaurantId != restaurantId);
-
-                if (existingRestaurant != null)
-                {
-                    Console.WriteLine("A restaurant with the same name already exists.");
-                    return;
-                }
-
-                restaurant.Name = newName;
-                restaurant.Address = newAddress;
-                restaurant.PhoneNumber = newPhoneNumber;
-                restaurant.OpeningHours = newOpeningHours;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Restaurant");
-            }
-            else
-            {
-                Console.WriteLine("Restaurant not found.");
-            }
-        }
-        static async Task UpdateTableAsync(RestaurantReservationDbContext context, int tableId, int newCapacity, int newRestaurantId)
-        {
-            var table = await context.Tables.FindAsync(tableId);
-            if (table != null)
-            {
-                var existingRestaurant = await context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    Console.WriteLine("The specified restaurant does not exist.");
-                    return;
-                }
-
-                table.Capacity = newCapacity;
-                table.RestaurantId = newRestaurantId;
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("Updated Table");
-            }
-            else
-            {
-                Console.WriteLine("Table not found.");
-            }
-        }
-        static async Task DeleteCustomerAsync(RestaurantReservationDbContext context, int customerId)
-        {
-            var customer = await context.Customers
-                .Include(c => c.Reservations)
-                .ThenInclude(r => r.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .FirstOrDefaultAsync(c => c.CustomerId == customerId);
-
-            if (customer != null)
-            {
-                foreach (var reservation in customer.Reservations)
-                {
-                    foreach (var order in reservation.Orders)
-                    {
-                        context.OrderItems.RemoveRange(order.OrderItems);
-                        context.Orders.Remove(order);
-                    }
-                    context.Reservations.Remove(reservation);
-                }
-
-                context.Customers.Remove(customer);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Customer");
-            }
-            else
-            {
-                Console.WriteLine("Customer not found.");
-            }
-        }
-        static async Task DeleteEmployeeAsync(RestaurantReservationDbContext context, int employeeId)
-        {
-            var employee = await context.Employees
-                .Include(e => e.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
-
-            if (employee != null)
-            {
-                foreach (var order in employee.Orders)
-                {
-                    context.OrderItems.RemoveRange(order.OrderItems);
-                    context.Orders.Remove(order);
-                }
-
-                context.Employees.Remove(employee);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Employee");
-            }
-            else
-            {
-                Console.WriteLine("Employee not found.");
-            }
-        }
-
-        static async Task DeleteMenuItemAsync(RestaurantReservationDbContext context, int menuItemId)
-        {
-            var menuItem = await context.MenuItems
-                .Include(m => m.OrderItems)
-                .FirstOrDefaultAsync(m => m.ItemId == menuItemId);
-
-            if (menuItem != null)
-            {
-                context.OrderItems.RemoveRange(menuItem.OrderItems);
-                context.MenuItems.Remove(menuItem);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Menu Item");
-            }
-            else
-            {
-                Console.WriteLine("Menu Item not found.");
-            }
-        }
-        static async Task DeleteOrderAsync(RestaurantReservationDbContext context, int orderId)
-        {
-            var order = await context.Orders
-                .Include(o => o.OrderItems)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
-
-            if (order != null)
-            {
-                context.OrderItems.RemoveRange(order.OrderItems);
-                context.Orders.Remove(order);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Order");
-            }
-            else
-            {
-                Console.WriteLine("Order not found.");
-            }
-        }
-
-
-        static async Task DeleteOrderItemAsync(RestaurantReservationDbContext context, int orderItemId)
-        {
-            var orderItem = await context.OrderItems.FindAsync(orderItemId);
-            if (orderItem != null)
-            {
-                context.OrderItems.Remove(orderItem);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Order Item");
-            }
-            else
-            {
-                Console.WriteLine("Order Item not found.");
-            }
-        }
-
-
-        static async Task DeleteReservationAsync(RestaurantReservationDbContext context, int reservationId)
-        {
-            var reservation = await context.Reservations
-                .Include(r => r.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
-
-            if (reservation != null)
-            {
-                foreach (var order in reservation.Orders)
-                {
-                    context.OrderItems.RemoveRange(order.OrderItems);
-                    context.Orders.Remove(order);
-                }
-
-                context.Reservations.Remove(reservation);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Reservation");
-            }
-            else
-            {
-                Console.WriteLine("Reservation not found.");
-            }
-        }
-
-        static async Task DeleteRestaurantAsync(RestaurantReservationDbContext context, int restaurantId)
-        {
-            var restaurant = await context.Restaurants
-                .Include(r => r.Employees)
-                .ThenInclude(e => e.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .Include(r => r.MenuItems)
-                .ThenInclude(m => m.OrderItems)
-                .Include(r => r.Reservations)
-                .ThenInclude(res => res.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .Include(r => r.Tables)
-                .FirstOrDefaultAsync(r => r.RestaurantId == restaurantId);
-
-            if (restaurant != null)
-            {
-                foreach (var employee in restaurant.Employees)
-                {
-                    foreach (var order in employee.Orders)
-                    {
-                        context.OrderItems.RemoveRange(order.OrderItems);
-                        context.Orders.Remove(order);
-                    }
-                    context.Employees.Remove(employee);
-                }
-
-                foreach (var reservation in restaurant.Reservations)
-                {
-                    foreach (var order in reservation.Orders)
-                    {
-                        context.OrderItems.RemoveRange(order.OrderItems);
-                        context.Orders.Remove(order);
-                    }
-                    context.Reservations.Remove(reservation);
-                }
-
-                foreach (var menuItem in restaurant.MenuItems)
-                {
-                    context.OrderItems.RemoveRange(menuItem.OrderItems);
-                    context.MenuItems.Remove(menuItem);
-                }
-
-                context.Tables.RemoveRange(restaurant.Tables);
-                context.Restaurants.Remove(restaurant);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Restaurant");
-            }
-            else
-            {
-                Console.WriteLine("Restaurant not found.");
-            }
-        }
-        static async Task DeleteTableAsync(RestaurantReservationDbContext context, int tableId)
-        {
-            var table = await context.Tables
-                .Include(t => t.Reservations)
-                .ThenInclude(r => r.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .FirstOrDefaultAsync(t => t.TableId == tableId);
-
-            if (table != null)
-            {
-                foreach (var reservation in table.Reservations)
-                {
-                    foreach (var order in reservation.Orders)
-                    {
-                        context.OrderItems.RemoveRange(order.OrderItems);
-                        context.Orders.Remove(order);
-                    }
-                    context.Reservations.Remove(reservation);
-                }
-
-                context.Tables.Remove(table);
-                await context.SaveChangesAsync();
-                Console.WriteLine("Deleted Table");
-            }
-            else
-            {
-                Console.WriteLine("Table not found.");
-            }
-        }
-
-        static async Task ListManagers(RestaurantReservationDbContext context)
-        {
-            var managers = await context.Employees.Where(e => e.Position == "Manager").ToListAsync();
+            var managers = await employeeRepository.ListManagersAsync();
             if (managers.Count > 0)
             {
                 Console.WriteLine("Managers:");
@@ -849,12 +180,10 @@ namespace RestaurantReservation
                 Console.WriteLine("No managers found.");
             }
         }
-        static async Task GetReservationsByCustomer(RestaurantReservationDbContext context, int customerId)
+
+        private static async Task GetReservationsByCustomer(CustomerRepository customerRepository, int customerId)
         {
-            var reservations = await context.Reservations
-                .Where(r => r.CustomerId == customerId)
-                .Include(r => r.Customer)
-                .ToListAsync();
+            var reservations = await customerRepository.GetReservationsByCustomerAsync(customerId);
             if (reservations.Count > 0)
             {
                 Console.WriteLine($"Reservations for customer {customerId}:");
@@ -868,13 +197,10 @@ namespace RestaurantReservation
                 Console.WriteLine($"No reservations found for customer {customerId}.");
             }
         }
-        static async Task ListOrdersAndMenuItems(RestaurantReservationDbContext context, int reservationId)
+
+        private static async Task ListOrdersAndMenuItems(OrderRepository orderRepository, int reservationId)
         {
-            var orders = await context.Orders
-                .Where(o => o.ReservationId == reservationId)
-                .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.MenuItem)
-                .ToListAsync();
+            var orders = await orderRepository.ListOrdersAndMenuItemsAsync(reservationId);
             if (orders.Count > 0)
             {
                 Console.WriteLine($"Orders and Menu Items for reservation {reservationId}:");
@@ -892,13 +218,10 @@ namespace RestaurantReservation
                 Console.WriteLine($"No orders found for reservation {reservationId}.");
             }
         }
-        static async Task ListOrderedMenuItems(RestaurantReservationDbContext context, int reservationId)
+
+        private static async Task ListOrderedMenuItems(OrderRepository orderRepository, int reservationId)
         {
-            var orderedMenuItems = await context.Orders
-                .Where(o => o.ReservationId == reservationId)
-                .SelectMany(o => o.OrderItems)
-                .Include(oi => oi.MenuItem)
-                .ToListAsync();
+            var orderedMenuItems = await orderRepository.ListOrderedMenuItemsAsync(reservationId);
             if (orderedMenuItems.Count > 0)
             {
                 Console.WriteLine($"Ordered Menu Items for reservation {reservationId}:");
@@ -912,22 +235,16 @@ namespace RestaurantReservation
                 Console.WriteLine($"No menu items found for reservation {reservationId}.");
             }
         }
-        static async Task CalculateAverageOrderAmount(RestaurantReservationDbContext context, int employeeId)
+
+        private static async Task CalculateAverageOrderAmount(OrderRepository orderRepository, int employeeId)
         {
-            var orders = await context.Orders.Where(o => o.EmployeeId == employeeId).ToListAsync();
-            if (orders.Count > 0)
-            {
-                var averageOrderAmount = orders.Average(o => o.TotalAmount);
-                Console.WriteLine($"Average Order Amount for employee {employeeId}: {averageOrderAmount}");
-            }
-            else
-            {
-                Console.WriteLine($"No orders found for employee {employeeId}.");
-            }
+            var averageOrderAmount = await orderRepository.CalculateAverageOrderAmountAsync(employeeId);
+            Console.WriteLine($"Average Order Amount for employee {employeeId}: {averageOrderAmount}");
         }
-        public static async Task ListReservationsWithDetails(RestaurantReservationDbContext context)
+
+        private static async Task ListReservationsWithDetails(ReservationRepository reservationRepository)
         {
-            var reservations = await context.ReservationsWithDetails.ToListAsync();
+            var reservations = await reservationRepository.ListReservationsWithDetailsAsync();
             if (reservations.Count == 0)
             {
                 Console.WriteLine("No reservations found.");
@@ -945,9 +262,9 @@ namespace RestaurantReservation
             }
         }
 
-        public static async Task ListEmployeesWithRestaurantDetails(RestaurantReservationDbContext context)
+        private static async Task ListEmployeesWithRestaurantDetails(EmployeeRepository employeeRepository)
         {
-            var employees = await context.EmployeesWithRestaurantDetails.ToListAsync();
+            var employees = await employeeRepository.ListEmployeesWithRestaurantDetailsAsync();
             if (employees.Count == 0)
             {
                 Console.WriteLine("No employees found.");
@@ -963,22 +280,845 @@ namespace RestaurantReservation
                 }
             }
         }
-        static async Task GetCustomersWithLargeReservations(RestaurantReservationDbContext context, int partySize)
+
+        private static async Task GetCustomersWithLargeReservations(CustomerRepository customerRepository, int partySize)
         {
-            var customers = await context.GetCustomersWithLargeReservationsAsync(partySize);
-            if (customers.Count > 0)
+            var customers = await customerRepository.GetCustomersWithLargeReservationsAsync(partySize);
+            if (customers.Count == 0)
             {
-                Console.WriteLine($"Customers with reservations for party size greater than {partySize}:");
+                Console.WriteLine("No customers found with large reservations.");
+            }
+            else
+            {
+                Console.WriteLine("Customers with large reservations:");
                 foreach (var customer in customers)
                 {
-                    Console.WriteLine($"{customer.FirstName} {customer.LastName} - Email: {customer.Email} - Phone: {customer.PhoneNumber}");
+                    Console.WriteLine($"Customer ID: {customer.CustomerId}, Name: {customer.FirstName} {customer.LastName}, Email: {customer.Email}");
+                }
+            }
+        }
+
+        private static async Task<decimal> CalculateTotalRevenueAsync(RestaurantRepository restaurantRepository, int restaurantId)
+        {
+            var totalRevenue = await restaurantRepository.CalculateTotalRevenueAsync(restaurantId);
+            return totalRevenue;
+        }
+
+        private static async Task AddEntity(
+            CustomerRepository customerRepository,
+            EmployeeRepository employeeRepository,
+            MenuItemRepository menuItemRepository,
+            OrderRepository orderRepository,
+            OrderItemRepository orderItemRepository,
+            ReservationRepository reservationRepository,
+            RestaurantRepository restaurantRepository,
+            TableRepository tableRepository)
+        {
+            Console.WriteLine("\nSelect an entity to add:");
+            Console.WriteLine("1. Customer");
+            Console.WriteLine("2. Employee");
+            Console.WriteLine("3. MenuItem");
+            Console.WriteLine("4. Order");
+            Console.WriteLine("5. OrderItem");
+            Console.WriteLine("6. Reservation");
+            Console.WriteLine("7. Restaurant");
+            Console.WriteLine("8. Table");
+            Console.WriteLine("9. Cancel");
+
+            var choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    await AddCustomerAsync(customerRepository);
+                    break;
+                case "2":
+                    await AddEmployeeAsync(employeeRepository);
+                    break;
+                case "3":
+                    await AddMenuItemAsync(menuItemRepository);
+                    break;
+                case "4":
+                    await AddOrderAsync(orderRepository);
+                    break;
+                case "5":
+                    await AddOrderItemAsync(orderItemRepository);
+                    break;
+                case "6":
+                    await AddReservationAsync(reservationRepository);
+                    break;
+                case "7":
+                    await AddRestaurantAsync(restaurantRepository);
+                    break;
+                case "8":
+                    await AddTableAsync(tableRepository);
+                    break;
+                case "9":
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+
+        private static async Task UpdateEntity(
+            CustomerRepository customerRepository,
+            EmployeeRepository employeeRepository,
+            MenuItemRepository menuItemRepository,
+            OrderRepository orderRepository,
+            OrderItemRepository orderItemRepository,
+            ReservationRepository reservationRepository,
+            RestaurantRepository restaurantRepository,
+            TableRepository tableRepository)
+        {
+            Console.WriteLine("\nSelect an entity to update:");
+            Console.WriteLine("1. Customer");
+            Console.WriteLine("2. Employee");
+            Console.WriteLine("3. MenuItem");
+            Console.WriteLine("4. Order");
+            Console.WriteLine("5. OrderItem");
+            Console.WriteLine("6. Reservation");
+            Console.WriteLine("7. Restaurant");
+            Console.WriteLine("8. Table");
+            Console.WriteLine("9. Cancel");
+
+            var choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    await UpdateCustomerAsync(customerRepository);
+                    break;
+                case "2":
+                    await UpdateEmployeeAsync(employeeRepository);
+                    break;
+                case "3":
+                    await UpdateMenuItemAsync(menuItemRepository);
+                    break;
+                case "4":
+                    await UpdateOrderAsync(orderRepository);
+                    break;
+                case "5":
+                    await UpdateOrderItemAsync(orderItemRepository);
+                    break;
+                case "6":
+                    await UpdateReservationAsync(reservationRepository);
+                    break;
+                case "7":
+                    await UpdateRestaurantAsync(restaurantRepository);
+                    break;
+                case "8":
+                    await UpdateTableAsync(tableRepository);
+                    break;
+                case "9":
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+
+        private static async Task DeleteEntity(
+            CustomerRepository customerRepository,
+            EmployeeRepository employeeRepository,
+            MenuItemRepository menuItemRepository,
+            OrderRepository orderRepository,
+            OrderItemRepository orderItemRepository,
+            ReservationRepository reservationRepository,
+            RestaurantRepository restaurantRepository,
+            TableRepository tableRepository)
+        {
+            Console.WriteLine("\nSelect an entity to delete:");
+            Console.WriteLine("1. Customer");
+            Console.WriteLine("2. Employee");
+            Console.WriteLine("3. MenuItem");
+            Console.WriteLine("4. Order");
+            Console.WriteLine("5. OrderItem");
+            Console.WriteLine("6. Reservation");
+            Console.WriteLine("7. Restaurant");
+            Console.WriteLine("8. Table");
+            Console.WriteLine("9. Cancel");
+
+            var choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    await DeleteCustomerAsync(customerRepository);
+                    break;
+                case "2":
+                    await DeleteEmployeeAsync(employeeRepository);
+                    break;
+                case "3":
+                    await DeleteMenuItemAsync(menuItemRepository);
+                    break;
+                case "4":
+                    await DeleteOrderAsync(orderRepository);
+                    break;
+                case "5":
+                    await DeleteOrderItemAsync(orderItemRepository);
+                    break;
+                case "6":
+                    await DeleteReservationAsync(reservationRepository);
+                    break;
+                case "7":
+                    await DeleteRestaurantAsync(restaurantRepository);
+                    break;
+                case "8":
+                    await DeleteTableAsync(tableRepository);
+                    break;
+                case "9":
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+
+        private static async Task AddCustomerAsync(CustomerRepository customerRepository)
+        {
+            Console.Write("Enter First Name: ");
+            string firstName = Console.ReadLine();
+            Console.Write("Enter Last Name: ");
+            string lastName = Console.ReadLine();
+            Console.Write("Enter Email: ");
+            string email = Console.ReadLine();
+            Console.Write("Enter Phone Number: ");
+            string phoneNumber = Console.ReadLine();
+
+            var newCustomer = new Customer
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                PhoneNumber = phoneNumber
+            };
+
+            await customerRepository.AddCustomerAsync(newCustomer);
+            Console.WriteLine("Customer added successfully.");
+        }
+
+        private static async Task AddEmployeeAsync(EmployeeRepository employeeRepository)
+        {
+            Console.Write("Enter First Name: ");
+            string firstName = Console.ReadLine();
+            Console.Write("Enter Last Name: ");
+            string lastName = Console.ReadLine();
+            Console.Write("Enter Position: ");
+            string position = Console.ReadLine();
+            Console.Write("Enter Restaurant ID: ");
+            if (int.TryParse(Console.ReadLine(), out int restaurantId))
+            {
+                var newEmployee = new Employee
+                {
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Position = position,
+                    RestaurantId = restaurantId
+                };
+
+                await employeeRepository.AddEmployeeAsync(newEmployee);
+                Console.WriteLine("Employee added successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Restaurant ID");
+            }
+        }
+
+        private static async Task AddMenuItemAsync(MenuItemRepository menuItemRepository)
+        {
+            Console.Write("Enter Name: ");
+            string name = Console.ReadLine();
+            Console.Write("Enter Description: ");
+            string description = Console.ReadLine();
+            Console.Write("Enter Price: ");
+            if (decimal.TryParse(Console.ReadLine(), out decimal price))
+            {
+                Console.Write("Enter Restaurant ID: ");
+                if (int.TryParse(Console.ReadLine(), out int restaurantId))
+                {
+                    var newMenuItem = new MenuItem
+                    {
+                        Name = name,
+                        Description = description,
+                        Price = price,
+                        RestaurantId = restaurantId
+                    };
+
+                    await menuItemRepository.AddMenuItemAsync(newMenuItem);
+                    Console.WriteLine("Menu item added successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Restaurant ID");
                 }
             }
             else
             {
-                Console.WriteLine($"No customers found with reservations for party size greater than {partySize}.");
+                Console.WriteLine("Invalid Price");
             }
         }
 
+        private static async Task AddOrderAsync(OrderRepository orderRepository)
+        {
+            Console.Write("Enter Employee ID: ");
+            if (int.TryParse(Console.ReadLine(), out int employeeId))
+            {
+                Console.Write("Enter Reservation ID: ");
+                if (int.TryParse(Console.ReadLine(), out int reservationId))
+                {
+                    Console.Write("Enter Total Amount: ");
+                    if (decimal.TryParse(Console.ReadLine(), out decimal totalAmount))
+                    {
+                        var newOrder = new Order
+                        {
+                            EmployeeId = employeeId,
+                            ReservationId = reservationId,
+                            OrderDate = DateTime.Now,
+                            TotalAmount = totalAmount
+                        };
+
+                        await orderRepository.AddOrderAsync(newOrder);
+                        Console.WriteLine("Order added successfully.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Total Amount");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Reservation ID");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Employee ID");
+            }
+        }
+
+        private static async Task AddOrderItemAsync(OrderItemRepository orderItemRepository)
+        {
+            Console.Write("Enter Order ID: ");
+            if (int.TryParse(Console.ReadLine(), out int orderId))
+            {
+                Console.Write("Enter Menu Item ID: ");
+                if (int.TryParse(Console.ReadLine(), out int itemId))
+                {
+                    Console.Write("Enter Quantity: ");
+                    if (int.TryParse(Console.ReadLine(), out int quantity))
+                    {
+                        var newOrderItem = new OrderItem
+                        {
+                            OrderId = orderId,
+                            ItemId = itemId,
+                            Quantity = quantity
+                        };
+
+                        await orderItemRepository.AddOrderItemAsync(newOrderItem);
+                        Console.WriteLine("Order item added successfully.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Quantity");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Menu Item ID");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Order ID");
+            }
+        }
+
+        private static async Task AddReservationAsync(ReservationRepository reservationRepository)
+        {
+            Console.Write("Enter Customer ID: ");
+            if (int.TryParse(Console.ReadLine(), out int customerId))
+            {
+                Console.Write("Enter Restaurant ID: ");
+                if (int.TryParse(Console.ReadLine(), out int restaurantId))
+                {
+                    Console.Write("Enter Table ID: ");
+                    if (int.TryParse(Console.ReadLine(), out int tableId))
+                    {
+                        Console.Write("Enter Party Size: ");
+                        if (int.TryParse(Console.ReadLine(), out int partySize))
+                        {
+                            var newReservation = new Reservation
+                            {
+                                CustomerId = customerId,
+                                RestaurantId = restaurantId,
+                                TableId = tableId,
+                                PartySize = partySize,
+                                ReservationDate = DateTime.Now
+                            };
+
+                            await reservationRepository.AddReservationAsync(newReservation);
+                            Console.WriteLine("Reservation added successfully.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid Party Size");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Table ID");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Restaurant ID");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Customer ID");
+            }
+        }
+
+        private static async Task AddRestaurantAsync(RestaurantRepository restaurantRepository)
+        {
+            Console.Write("Enter Name: ");
+            string name = Console.ReadLine();
+            Console.Write("Enter Address: ");
+            string address = Console.ReadLine();
+            Console.Write("Enter Phone Number: ");
+            string phoneNumber = Console.ReadLine();
+            Console.Write("Enter Opening Hours: ");
+            string openingHours = Console.ReadLine();
+
+            var newRestaurant = new Restaurant
+            {
+                Name = name,
+                Address = address,
+                PhoneNumber = phoneNumber,
+                OpeningHours = openingHours
+            };
+
+            await restaurantRepository.AddRestaurantAsync(newRestaurant);
+            Console.WriteLine("Restaurant added successfully.");
+        }
+
+        private static async Task AddTableAsync(TableRepository tableRepository)
+        {
+            Console.Write("Enter Capacity: ");
+            if (int.TryParse(Console.ReadLine(), out int capacity))
+            {
+                Console.Write("Enter Restaurant ID: ");
+                if (int.TryParse(Console.ReadLine(), out int restaurantId))
+                {
+                    var newTable = new Table
+                    {
+                        Capacity = capacity,
+                        RestaurantId = restaurantId
+                    };
+
+                    await tableRepository.AddTableAsync(newTable);
+                    Console.WriteLine("Table added successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Restaurant ID");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Capacity");
+            }
+        }
+
+        private static async Task UpdateCustomerAsync(CustomerRepository customerRepository)
+        {
+            Console.Write("Enter Customer ID: ");
+            if (int.TryParse(Console.ReadLine(), out int customerId))
+            {
+                Console.Write("Enter New First Name: ");
+                string newFirstName = Console.ReadLine();
+                Console.Write("Enter New Last Name: ");
+                string newLastName = Console.ReadLine();
+                Console.Write("Enter New Email: ");
+                string newEmail = Console.ReadLine();
+                Console.Write("Enter New Phone Number: ");
+                string newPhoneNumber = Console.ReadLine();
+
+                await customerRepository.UpdateCustomerAsync(customerId, newFirstName, newLastName, newEmail, newPhoneNumber);
+                Console.WriteLine("Customer updated successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Customer ID");
+            }
+        }
+
+        private static async Task UpdateEmployeeAsync(EmployeeRepository employeeRepository)
+        {
+            Console.Write("Enter Employee ID: ");
+            if (int.TryParse(Console.ReadLine(), out int employeeId))
+            {
+                Console.Write("Enter New First Name: ");
+                string newFirstName = Console.ReadLine();
+                Console.Write("Enter New Last Name: ");
+                string newLastName = Console.ReadLine();
+                Console.Write("Enter New Position: ");
+                string newPosition = Console.ReadLine();
+                Console.Write("Enter New Restaurant ID: ");
+                if (int.TryParse(Console.ReadLine(), out int newRestaurantId))
+                {
+                    await employeeRepository.UpdateEmployeeAsync(employeeId, newFirstName, newLastName, newPosition, newRestaurantId);
+                    Console.WriteLine("Employee updated successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Restaurant ID");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Employee ID");
+            }
+        }
+
+        private static async Task UpdateMenuItemAsync(MenuItemRepository menuItemRepository)
+        {
+            Console.Write("Enter Menu Item ID: ");
+            if (int.TryParse(Console.ReadLine(), out int menuItemId))
+            {
+                Console.Write("Enter New Name: ");
+                string newName = Console.ReadLine();
+                Console.Write("Enter New Description: ");
+                string newDescription = Console.ReadLine();
+                Console.Write("Enter New Price: ");
+                if (decimal.TryParse(Console.ReadLine(), out decimal newPrice))
+                {
+                    Console.Write("Enter New Restaurant ID: ");
+                    if (int.TryParse(Console.ReadLine(), out int newRestaurantId))
+                    {
+                        await menuItemRepository.UpdateMenuItemAsync(menuItemId, newName, newDescription, newPrice, newRestaurantId);
+                        Console.WriteLine("Menu item updated successfully.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Restaurant ID");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Price");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Menu Item ID");
+            }
+        }
+
+        private static async Task UpdateOrderAsync(OrderRepository orderRepository)
+        {
+            Console.Write("Enter Order ID: ");
+            if (int.TryParse(Console.ReadLine(), out int orderId))
+            {
+                Console.Write("Enter New Order Date (yyyy-MM-dd): ");
+                if (DateTime.TryParse(Console.ReadLine(), out DateTime newOrderDate))
+                {
+                    Console.Write("Enter New Total Amount: ");
+                    if (decimal.TryParse(Console.ReadLine(), out decimal newTotalAmount))
+                    {
+                        Console.Write("Enter New Employee ID: ");
+                        if (int.TryParse(Console.ReadLine(), out int newEmployeeId))
+                        {
+                            Console.Write("Enter New Reservation ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int newReservationId))
+                            {
+                                await orderRepository.UpdateOrderAsync(orderId, newOrderDate, newTotalAmount, newEmployeeId, newReservationId);
+                                Console.WriteLine("Order updated successfully.");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Reservation ID");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid Employee ID");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Total Amount");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Order Date");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Order ID");
+            }
+        }
+
+        private static async Task UpdateOrderItemAsync(OrderItemRepository orderItemRepository)
+        {
+            Console.Write("Enter Order Item ID: ");
+            if (int.TryParse(Console.ReadLine(), out int orderItemId))
+            {
+                Console.Write("Enter New Menu Item ID: ");
+                if (int.TryParse(Console.ReadLine(), out int newItemId))
+                {
+                    Console.Write("Enter New Quantity: ");
+                    if (int.TryParse(Console.ReadLine(), out int newQuantity))
+                    {
+                        Console.Write("Enter New Order ID: ");
+                        if (int.TryParse(Console.ReadLine(), out int newOrderId))
+                        {
+                            await orderItemRepository.UpdateOrderItemAsync(orderItemId, newItemId, newQuantity, newOrderId);
+                            Console.WriteLine("Order item updated successfully.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid Order ID");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Quantity");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Menu Item ID");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Order Item ID");
+            }
+        }
+
+        private static async Task UpdateReservationAsync(ReservationRepository reservationRepository)
+        {
+            Console.Write("Enter Reservation ID: ");
+            if (int.TryParse(Console.ReadLine(), out int reservationId))
+            {
+                Console.Write("Enter New Reservation Date (yyyy-MM-dd): ");
+                if (DateTime.TryParse(Console.ReadLine(), out DateTime newReservationDate))
+                {
+                    Console.Write("Enter New Party Size: ");
+                    if (int.TryParse(Console.ReadLine(), out int newPartySize))
+                    {
+                        Console.Write("Enter New Customer ID: ");
+                        if (int.TryParse(Console.ReadLine(), out int newCustomerId))
+                        {
+                            Console.Write("Enter New Restaurant ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int newRestaurantId))
+                            {
+                                Console.Write("Enter New Table ID: ");
+                                if (int.TryParse(Console.ReadLine(), out int newTableId))
+                                {
+                                    await reservationRepository.UpdateReservationAsync(reservationId, newReservationDate, newPartySize, newCustomerId, newRestaurantId, newTableId);
+                                    Console.WriteLine("Reservation updated successfully.");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Invalid Table ID");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Restaurant ID");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid Customer ID");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Party Size");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Reservation Date");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Reservation ID");
+            }
+        }
+
+        private static async Task UpdateRestaurantAsync(RestaurantRepository restaurantRepository)
+        {
+            Console.Write("Enter Restaurant ID: ");
+            if (int.TryParse(Console.ReadLine(), out int restaurantId))
+            {
+                Console.Write("Enter New Name: ");
+                string newName = Console.ReadLine();
+                Console.Write("Enter New Address: ");
+                string newAddress = Console.ReadLine();
+                Console.Write("Enter New Phone Number: ");
+                string newPhoneNumber = Console.ReadLine();
+                Console.Write("Enter New Opening Hours: ");
+                string newOpeningHours = Console.ReadLine();
+
+                await restaurantRepository.UpdateRestaurantAsync(restaurantId, newName, newAddress, newPhoneNumber, newOpeningHours);
+                Console.WriteLine("Restaurant updated successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Restaurant ID");
+            }
+        }
+
+        private static async Task UpdateTableAsync(TableRepository tableRepository)
+        {
+            Console.Write("Enter Table ID: ");
+            if (int.TryParse(Console.ReadLine(), out int tableId))
+            {
+                Console.Write("Enter New Capacity: ");
+                if (int.TryParse(Console.ReadLine(), out int newCapacity))
+                {
+                    Console.Write("Enter New Restaurant ID: ");
+                    if (int.TryParse(Console.ReadLine(), out int newRestaurantId))
+                    {
+                        await tableRepository.UpdateTableAsync(tableId, newCapacity, newRestaurantId);
+                        Console.WriteLine("Table updated successfully.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Restaurant ID");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Capacity");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid Table ID");
+            }
+        }
+
+        private static async Task DeleteCustomerAsync(CustomerRepository customerRepository)
+        {
+            Console.Write("Enter Customer ID: ");
+            if (int.TryParse(Console.ReadLine(), out int customerId))
+            {
+                await customerRepository.DeleteCustomerAsync(customerId);
+                Console.WriteLine("Customer deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Customer ID");
+            }
+        }
+
+        private static async Task DeleteEmployeeAsync(EmployeeRepository employeeRepository)
+        {
+            Console.Write("Enter Employee ID: ");
+            if (int.TryParse(Console.ReadLine(), out int employeeId))
+            {
+                await employeeRepository.DeleteEmployeeAsync(employeeId);
+                Console.WriteLine("Employee deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Employee ID");
+            }
+        }
+
+        private static async Task DeleteMenuItemAsync(MenuItemRepository menuItemRepository)
+        {
+            Console.Write("Enter Menu Item ID: ");
+            if (int.TryParse(Console.ReadLine(), out int menuItemId))
+            {
+                await menuItemRepository.DeleteMenuItemAsync(menuItemId);
+                Console.WriteLine("Menu item deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Menu Item ID");
+            }
+        }
+
+        private static async Task DeleteOrderAsync(OrderRepository orderRepository)
+        {
+            Console.Write("Enter Order ID: ");
+            if (int.TryParse(Console.ReadLine(), out int orderId))
+            {
+                await orderRepository.DeleteOrderAsync(orderId);
+                Console.WriteLine("Order deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Order ID");
+            }
+        }
+
+        private static async Task DeleteOrderItemAsync(OrderItemRepository orderItemRepository)
+        {
+            Console.Write("Enter Order Item ID: ");
+            if (int.TryParse(Console.ReadLine(), out int orderItemId))
+            {
+                await orderItemRepository.DeleteOrderItemAsync(orderItemId);
+                Console.WriteLine("Order item deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Order Item ID");
+            }
+        }
+
+        private static async Task DeleteReservationAsync(ReservationRepository reservationRepository)
+        {
+            Console.Write("Enter Reservation ID: ");
+            if (int.TryParse(Console.ReadLine(), out int reservationId))
+            {
+                await reservationRepository.DeleteReservationAsync(reservationId);
+                Console.WriteLine("Reservation deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Reservation ID");
+            }
+        }
+
+        private static async Task DeleteRestaurantAsync(RestaurantRepository restaurantRepository)
+        {
+            Console.Write("Enter Restaurant ID: ");
+            if (int.TryParse(Console.ReadLine(), out int restaurantId))
+            {
+                await restaurantRepository.DeleteRestaurantAsync(restaurantId);
+                Console.WriteLine("Restaurant deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Restaurant ID");
+            }
+        }
+
+        private static async Task DeleteTableAsync(TableRepository tableRepository)
+        {
+            Console.Write("Enter Table ID: ");
+            if (int.TryParse(Console.ReadLine(), out int tableId))
+            {
+                await tableRepository.DeleteTableAsync(tableId);
+                Console.WriteLine("Table deleted successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Invalid Table ID");
+            }
+        }
     }
 }
