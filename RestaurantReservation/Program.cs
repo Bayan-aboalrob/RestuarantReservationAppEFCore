@@ -95,7 +95,9 @@ namespace RestaurantReservation
                     Console.WriteLine("3. List Orders and Menu Items by Reservation");
                     Console.WriteLine("4. List Ordered Menu Items by Reservation");
                     Console.WriteLine("5. Calculate Average Order Amount by Employee");
-                    Console.WriteLine("6. Exit");
+                    Console.WriteLine("6. List Reservations With Details");
+                    Console.WriteLine("7. List Employees With Restaurant Details");
+                    Console.WriteLine("8. Exit");
 
                     var choice = Console.ReadLine();
 
@@ -149,10 +151,16 @@ namespace RestaurantReservation
                             }
                             break;
                         case "6":
+                            await ListReservationsWithDetails(context);
+                            break;
+                        case "7":
+                            await ListEmployeesWithRestaurantDetails(context);
+                            break;
+                        case "8":
                             exit = true;
                             break;
                         default:
-                            Console.WriteLine("Invalid choice. Please select a valid option.");
+                            Console.WriteLine("Invalid choice. Please try again.");
                             break;
                     }
                 }
@@ -888,6 +896,44 @@ namespace RestaurantReservation
             else
             {
                 Console.WriteLine($"No orders found for employee {employeeId}.");
+            }
+        }
+        public static async Task ListReservationsWithDetails(RestaurantReservationDbContext context)
+        {
+            var reservations = await context.ReservationsWithDetails.ToListAsync();
+            if (reservations.Count == 0)
+            {
+                Console.WriteLine("No reservations found.");
+            }
+            else
+            {
+                Console.WriteLine("Reservations with details:");
+                foreach (var reservation in reservations)
+                {
+                    Console.WriteLine($"Reservation ID: {reservation.ReservationId}, Date: {reservation.ReservationDate}, " +
+                                      $"Party Size: {reservation.PartySize}, Customer: {reservation.CustomerFirstName} {reservation.CustomerLastName}, " +
+                                      $"Email: {reservation.CustomerEmail}, Restaurant: {reservation.RestaurantName}, " +
+                                      $"Address: {reservation.RestaurantAddress}, Phone: {reservation.RestaurantPhoneNumber}");
+                }
+            }
+        }
+
+        public static async Task ListEmployeesWithRestaurantDetails(RestaurantReservationDbContext context)
+        {
+            var employees = await context.EmployeesWithRestaurantDetails.ToListAsync();
+            if (employees.Count == 0)
+            {
+                Console.WriteLine("No employees found.");
+            }
+            else
+            {
+                Console.WriteLine("Employees with restaurant details:");
+                foreach (var employee in employees)
+                {
+                    Console.WriteLine($"Employee ID: {employee.EmployeeId}, Name: {employee.FirstName} {employee.LastName}, " +
+                                      $"Position: {employee.Position}, Restaurant: {employee.RestaurantName}, " +
+                                      $"Address: {employee.RestaurantAddress}, Phone: {employee.RestaurantPhoneNumber}");
+                }
             }
         }
 

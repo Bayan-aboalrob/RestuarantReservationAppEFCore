@@ -12,6 +12,8 @@ namespace RestaurantReservation.Db
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<Restaurant> Restaurants { get; set; }
         public DbSet<Table> Tables { get; set; }
+        public DbSet<ReservationWithDetails> ReservationsWithDetails { get; set; }
+        public DbSet<EmployeeWithRestaurantDetails> EmployeesWithRestaurantDetails { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -260,6 +262,8 @@ namespace RestaurantReservation.Db
                 new OrderItem { OrderItemId = 4, ItemId = 4, Quantity = 4, OrderId = 4 },
                 new OrderItem { OrderItemId = 5, ItemId = 5, Quantity = 5, OrderId = 5 }
             );
+            modelBuilder.Entity<ReservationWithDetails>().HasNoKey().ToView("ReservationsWithDetails");
+            modelBuilder.Entity<EmployeeWithRestaurantDetails>().HasNoKey().ToView("EmployeesWithRestaurantDetails");
 
 
             base.OnModelCreating(modelBuilder);
