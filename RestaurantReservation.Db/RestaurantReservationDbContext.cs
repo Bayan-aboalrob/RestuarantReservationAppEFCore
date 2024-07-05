@@ -38,10 +38,16 @@ namespace RestaurantReservation.Db
             modelBuilder.Entity<Customer>()
                 .Property(c => c.Email)
                 .IsRequired();
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
 
             modelBuilder.Entity<Customer>()
                 .Property(c => c.PhoneNumber)
                 .IsRequired();
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.PhoneNumber)
+                .IsUnique();
 
             modelBuilder.Entity<Employee>()
                 .HasKey(e => e.EmployeeId);
@@ -166,6 +172,9 @@ namespace RestaurantReservation.Db
             modelBuilder.Entity<Restaurant>()
                 .Property(r => r.PhoneNumber)
                 .IsRequired();
+            modelBuilder.Entity<Restaurant>()
+                .HasIndex(c => c.PhoneNumber)
+                .IsUnique();
 
             modelBuilder.Entity<Restaurant>()
                 .Property(r => r.OpeningHours)
