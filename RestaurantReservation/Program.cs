@@ -15,57 +15,74 @@ namespace RestaurantReservation
 
                 var newCustomer = new Customer
                 {
-                    FirstName = "Sara",
-                    LastName = "Dolani",
-                    Email = "Sara.Dolani2@example.com", // Unique email
-                    PhoneNumber = "123-456-1235" // Unique phone number
+                    FirstName = "Alex",
+                    LastName = "Johnson",
+                    Email = "alex.johnson@example.com", 
+                    PhoneNumber = "123-456-7891"
                 };
                 await AddCustomerAsync(context, newCustomer);
                 int customerId = newCustomer.CustomerId;
 
-                var newEmployee = new Employee { FirstName = "Jane", LastName = "Smith", Position = "Waiter", RestaurantId = 2 };
+                var newEmployee = new Employee { FirstName = "Emily", LastName = "Brown", Position = "Waiter", RestaurantId = 3 };
                 await AddEmployeeAsync(context, newEmployee);
                 int employeeId = newEmployee.EmployeeId;
 
-                var newMenuItem = new MenuItem { Name = "Burrito", Description = "Chicken Burrito", Price = 5.99m, RestaurantId = 2 };
+                var newMenuItem = new MenuItem { Name = "Salad", Description = "Greek Salad", Price = 7.99m, RestaurantId = 3 };
                 await AddMenuItemAsync(context, newMenuItem);
                 int menuItemId = newMenuItem.ItemId;
 
-                var newReservation = new Reservation { RestaurantId = 2, ReservationDate = DateTime.Now.AddDays(1), PartySize = 2, CustomerId = customerId, TableId = 3 };
+                var newReservation = new Reservation { RestaurantId = 3, ReservationDate = DateTime.Now.AddDays(1), PartySize = 4, CustomerId = customerId, TableId = 4 };
                 await AddReservationAsync(context, newReservation);
                 int reservationId = newReservation.ReservationId;
 
-                var newOrder = new Order { EmployeeId = employeeId, OrderDate = DateTime.Now, TotalAmount = 19.99m, ReservationId = reservationId };
+                var newOrder = new Order { EmployeeId = employeeId, OrderDate = DateTime.Now, TotalAmount = 29.99m, ReservationId = reservationId };
                 await AddOrderAsync(context, newOrder);
                 int orderId = newOrder.OrderId;
 
-                var newOrderItem = new OrderItem { ItemId = menuItemId, Quantity = 1, OrderId = orderId };
+                var newOrderItem = new OrderItem { ItemId = menuItemId, Quantity = 2, OrderId = orderId };
                 await AddOrderItemAsync(context, newOrderItem);
                 int orderItemId = newOrderItem.OrderItemId;
 
-                var newRestaurant = new Restaurant { Name = "New Test Restaurant", Address = "New Test Address", PhoneNumber = "999-999-9998", OpeningHours = "9 AM - 9 PM" };
+                var newRestaurant = new Restaurant { Name = "New Sample Restaurant", Address = "Sample Address", PhoneNumber = "999-999-9988", OpeningHours = "8 AM - 8 PM" };
                 await AddRestaurantAsync(context, newRestaurant);
                 int restaurantId = newRestaurant.RestaurantId;
 
-                var newTable = new Table { Capacity = 4, RestaurantId = restaurantId };
+                var newTable = new Table { Capacity = 5, RestaurantId = restaurantId };
                 await AddTableAsync(context, newTable);
                 int tableId = newTable.TableId;
 
-                await UpdateCustomerAsync(context, customerId, "Layan", "Aboalrob", "Layan.new@example.com", "0593069885");
+                await UpdateCustomerAsync(context, customerId, "Michael", "Smith", "michael.smith@example.com", "098-765-4321");
 
-                await UpdateEmployeeAsync(context, employeeId, "Jane", "Doe", "Chef", 2);
+                await UpdateEmployeeAsync(context, employeeId, "Emily", "Jones", "Chef", 3);
 
-                await UpdateMenuItemAsync(context, menuItemId, "Burrito", "Beef Burrito", 6.99m, 2);
+                await UpdateMenuItemAsync(context, menuItemId, "Salad", "Caesar Salad", 8.99m, 3);
 
-                await UpdateReservationAsync(context, reservationId, DateTime.Now.AddDays(2), 3, customerId, 2, 3);
+                await UpdateReservationAsync(context, reservationId, DateTime.Now.AddDays(2), 5, customerId, 3, 4);
 
-                await UpdateOrderAsync(context, orderId, DateTime.Now.AddMinutes(30), 24.99m, employeeId, reservationId);
+                await UpdateOrderAsync(context, orderId, DateTime.Now.AddMinutes(30), 34.99m, employeeId, reservationId);
 
-                await UpdateOrderItemAsync(context, orderItemId, menuItemId, 2, orderId);
+                await UpdateOrderItemAsync(context, orderItemId, menuItemId, 3, orderId);
 
-                await UpdateRestaurantAsync(context, restaurantId, "Updated New Restaurant", "Updated New Address", "888-888-8887", "10 AM - 10 PM");
+                await UpdateRestaurantAsync(context, restaurantId, "Updated Sample Restaurant", "Updated Sample Address", "888-888-8877", "9 AM - 9 PM");
 
                 await UpdateTableAsync(context, tableId, 6, restaurantId);
+
+                await DeleteOrderItemAsync(context, orderItemId);
+
+                await DeleteOrderAsync(context, orderId);
+
+                await DeleteReservationAsync(context, reservationId);
+
+                await DeleteCustomerAsync(context, customerId);
+
+                await DeleteEmployeeAsync(context, employeeId);
+
+                await DeleteMenuItemAsync(context, menuItemId);
+
+                await DeleteRestaurantAsync(context, restaurantId);
+
+                await DeleteTableAsync(context, tableId);
+
             }
         }
 
@@ -492,5 +509,222 @@ namespace RestaurantReservation
                 Console.WriteLine("Table not found.");
             }
         }
+        static async Task DeleteCustomerAsync(RestaurantReservationDbContext context, int customerId)
+        {
+            var customer = await context.Customers
+                .Include(c => c.Reservations)
+                .ThenInclude(r => r.Orders)
+                .ThenInclude(o => o.OrderItems)
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+
+            if (customer != null)
+            {
+                foreach (var reservation in customer.Reservations)
+                {
+                    foreach (var order in reservation.Orders)
+                    {
+                        context.OrderItems.RemoveRange(order.OrderItems);
+                        context.Orders.Remove(order);
+                    }
+                    context.Reservations.Remove(reservation);
+                }
+
+                context.Customers.Remove(customer);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Customer");
+            }
+            else
+            {
+                Console.WriteLine("Customer not found.");
+            }
+        }
+        static async Task DeleteEmployeeAsync(RestaurantReservationDbContext context, int employeeId)
+        {
+            var employee = await context.Employees
+                .Include(e => e.Orders)
+                .ThenInclude(o => o.OrderItems)
+                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+
+            if (employee != null)
+            {
+                foreach (var order in employee.Orders)
+                {
+                    context.OrderItems.RemoveRange(order.OrderItems);
+                    context.Orders.Remove(order);
+                }
+
+                context.Employees.Remove(employee);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Employee");
+            }
+            else
+            {
+                Console.WriteLine("Employee not found.");
+            }
+        }
+
+        static async Task DeleteMenuItemAsync(RestaurantReservationDbContext context, int menuItemId)
+        {
+            var menuItem = await context.MenuItems
+                .Include(m => m.OrderItems)
+                .FirstOrDefaultAsync(m => m.ItemId == menuItemId);
+
+            if (menuItem != null)
+            {
+                context.OrderItems.RemoveRange(menuItem.OrderItems);
+                context.MenuItems.Remove(menuItem);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Menu Item");
+            }
+            else
+            {
+                Console.WriteLine("Menu Item not found.");
+            }
+        }
+        static async Task DeleteOrderAsync(RestaurantReservationDbContext context, int orderId)
+        {
+            var order = await context.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order != null)
+            {
+                context.OrderItems.RemoveRange(order.OrderItems);
+                context.Orders.Remove(order);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Order");
+            }
+            else
+            {
+                Console.WriteLine("Order not found.");
+            }
+        }
+
+
+        static async Task DeleteOrderItemAsync(RestaurantReservationDbContext context, int orderItemId)
+        {
+            var orderItem = await context.OrderItems.FindAsync(orderItemId);
+            if (orderItem != null)
+            {
+                context.OrderItems.Remove(orderItem);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Order Item");
+            }
+            else
+            {
+                Console.WriteLine("Order Item not found.");
+            }
+        }
+
+
+        static async Task DeleteReservationAsync(RestaurantReservationDbContext context, int reservationId)
+        {
+            var reservation = await context.Reservations
+                .Include(r => r.Orders)
+                .ThenInclude(o => o.OrderItems)
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+
+            if (reservation != null)
+            {
+                foreach (var order in reservation.Orders)
+                {
+                    context.OrderItems.RemoveRange(order.OrderItems);
+                    context.Orders.Remove(order);
+                }
+
+                context.Reservations.Remove(reservation);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Reservation");
+            }
+            else
+            {
+                Console.WriteLine("Reservation not found.");
+            }
+        }
+
+        static async Task DeleteRestaurantAsync(RestaurantReservationDbContext context, int restaurantId)
+        {
+            var restaurant = await context.Restaurants
+                .Include(r => r.Employees)
+                .ThenInclude(e => e.Orders)
+                .ThenInclude(o => o.OrderItems)
+                .Include(r => r.MenuItems)
+                .ThenInclude(m => m.OrderItems)
+                .Include(r => r.Reservations)
+                .ThenInclude(res => res.Orders)
+                .ThenInclude(o => o.OrderItems)
+                .Include(r => r.Tables)
+                .FirstOrDefaultAsync(r => r.RestaurantId == restaurantId);
+
+            if (restaurant != null)
+            {
+                foreach (var employee in restaurant.Employees)
+                {
+                    foreach (var order in employee.Orders)
+                    {
+                        context.OrderItems.RemoveRange(order.OrderItems);
+                        context.Orders.Remove(order);
+                    }
+                    context.Employees.Remove(employee);
+                }
+
+                foreach (var reservation in restaurant.Reservations)
+                {
+                    foreach (var order in reservation.Orders)
+                    {
+                        context.OrderItems.RemoveRange(order.OrderItems);
+                        context.Orders.Remove(order);
+                    }
+                    context.Reservations.Remove(reservation);
+                }
+
+                foreach (var menuItem in restaurant.MenuItems)
+                {
+                    context.OrderItems.RemoveRange(menuItem.OrderItems);
+                    context.MenuItems.Remove(menuItem);
+                }
+
+                context.Tables.RemoveRange(restaurant.Tables);
+                context.Restaurants.Remove(restaurant);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Restaurant");
+            }
+            else
+            {
+                Console.WriteLine("Restaurant not found.");
+            }
+        }
+        static async Task DeleteTableAsync(RestaurantReservationDbContext context, int tableId)
+        {
+            var table = await context.Tables
+                .Include(t => t.Reservations)
+                .ThenInclude(r => r.Orders)
+                .ThenInclude(o => o.OrderItems)
+                .FirstOrDefaultAsync(t => t.TableId == tableId);
+
+            if (table != null)
+            {
+                foreach (var reservation in table.Reservations)
+                {
+                    foreach (var order in reservation.Orders)
+                    {
+                        context.OrderItems.RemoveRange(order.OrderItems);
+                        context.Orders.Remove(order);
+                    }
+                    context.Reservations.Remove(reservation);
+                }
+
+                context.Tables.Remove(table);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Deleted Table");
+            }
+            else
+            {
+                Console.WriteLine("Table not found.");
+            }
+        }
+
+
+
     }
 }
