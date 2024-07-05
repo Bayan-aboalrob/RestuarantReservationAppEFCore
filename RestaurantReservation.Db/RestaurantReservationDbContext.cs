@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
 namespace RestaurantReservation.Db
@@ -16,6 +17,7 @@ namespace RestaurantReservation.Db
         public DbSet<TotalRevenue> TotalRevenues { get; set; }
         public DbSet<ReservationWithDetails> ReservationsWithDetails { get; set; }
         public DbSet<EmployeeWithRestaurantDetails> EmployeesWithRestaurantDetails { get; set; }
+        public DbSet<CustomerWithLargeReservation> CustomersWithLargeReservations { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -26,6 +28,7 @@ namespace RestaurantReservation.Db
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<CustomerWithLargeReservation>().HasNoKey();
 
             modelBuilder.Entity<TotalRevenue>().HasNoKey();
 
@@ -280,6 +283,14 @@ namespace RestaurantReservation.Db
                 .FirstOrDefaultAsync();
 
             return revenueResult?.Value ?? 0;
+        }
+
+        public async Task<List<CustomerWithLargeReservation>> GetCustomersWithLargeReservationsAsync(int partySize)
+        {
+            var partySizeParam = new SqlParameter("@PartySize", partySize);
+            return await this.CustomersWithLargeReservations
+                             .FromSqlRaw("EXEC dbo.GetCustomersWithLargeReservations @PartySize", partySizeParam)
+                             .ToListAsync();
         }
 
     }

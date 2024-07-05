@@ -98,7 +98,8 @@ namespace RestaurantReservation
                     Console.WriteLine("6. List Reservations With Details");
                     Console.WriteLine("7. List Employees With Restaurant Details");
                     Console.WriteLine("8. Calculate Total Revenue by Restaurant");
-                    Console.WriteLine("9. Exit");
+                    Console.WriteLine("9. Get Customers With Large Reservations");
+                    Console.WriteLine("10. Exit");
 
                     var choice = Console.ReadLine();
 
@@ -170,12 +171,24 @@ namespace RestaurantReservation
                             }
                             break;
                         case "9":
+                            Console.Write("Enter Minimum Party Size: ");
+                            if (int.TryParse(Console.ReadLine(), out int partySize))
+                            {
+                                await GetCustomersWithLargeReservations(context, partySize);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Party Size");
+                            }
+                            break;
+                        case "10":
                             exit = true;
                             break;
                         default:
                             Console.WriteLine("Invalid choice. Please try again.");
                             break;
-                        
+                     
+
                     }
                 }
 
@@ -948,6 +961,22 @@ namespace RestaurantReservation
                                       $"Position: {employee.Position}, Restaurant: {employee.RestaurantName}, " +
                                       $"Address: {employee.RestaurantAddress}, Phone: {employee.RestaurantPhoneNumber}");
                 }
+            }
+        }
+        static async Task GetCustomersWithLargeReservations(RestaurantReservationDbContext context, int partySize)
+        {
+            var customers = await context.GetCustomersWithLargeReservationsAsync(partySize);
+            if (customers.Count > 0)
+            {
+                Console.WriteLine($"Customers with reservations for party size greater than {partySize}:");
+                foreach (var customer in customers)
+                {
+                    Console.WriteLine($"{customer.FirstName} {customer.LastName} - Email: {customer.Email} - Phone: {customer.PhoneNumber}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"No customers found with reservations for party size greater than {partySize}.");
             }
         }
 
