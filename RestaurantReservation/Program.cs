@@ -97,7 +97,8 @@ namespace RestaurantReservation
                     Console.WriteLine("5. Calculate Average Order Amount by Employee");
                     Console.WriteLine("6. List Reservations With Details");
                     Console.WriteLine("7. List Employees With Restaurant Details");
-                    Console.WriteLine("8. Exit");
+                    Console.WriteLine("8. Calculate Total Revenue by Restaurant");
+                    Console.WriteLine("9. Exit");
 
                     var choice = Console.ReadLine();
 
@@ -157,11 +158,24 @@ namespace RestaurantReservation
                             await ListEmployeesWithRestaurantDetails(context);
                             break;
                         case "8":
+                            Console.Write("Enter Restaurant ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int restaurantId))
+                            {
+                                decimal totalRevenue = await context.CalculateTotalRevenueAsync(restaurantId);
+                                Console.WriteLine($"Total Revenue for Restaurant {restaurantId}: {totalRevenue}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Restaurant ID");
+                            }
+                            break;
+                        case "9":
                             exit = true;
                             break;
                         default:
                             Console.WriteLine("Invalid choice. Please try again.");
                             break;
+                        
                     }
                 }
 

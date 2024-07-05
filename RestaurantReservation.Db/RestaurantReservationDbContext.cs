@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace RestaurantReservation.Db
 {
@@ -12,6 +13,7 @@ namespace RestaurantReservation.Db
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<Restaurant> Restaurants { get; set; }
         public DbSet<Table> Tables { get; set; }
+        public DbSet<TotalRevenue> TotalRevenues { get; set; }
         public DbSet<ReservationWithDetails> ReservationsWithDetails { get; set; }
         public DbSet<EmployeeWithRestaurantDetails> EmployeesWithRestaurantDetails { get; set; }
 
@@ -24,6 +26,9 @@ namespace RestaurantReservation.Db
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            modelBuilder.Entity<TotalRevenue>().HasNoKey();
+
             modelBuilder.Entity<Customer>()
                 .HasKey(c => c.CustomerId);
 
@@ -268,5 +273,14 @@ namespace RestaurantReservation.Db
 
             base.OnModelCreating(modelBuilder);
         }
+        public async Task<decimal> CalculateTotalRevenueAsync(int restaurantId)
+        {
+            var revenueResult = await Set<TotalRevenue>()
+                .FromSqlRaw("SELECT dbo.CalculateTotalRevenue({0}) AS Value", restaurantId)
+                .FirstOrDefaultAsync();
+
+            return revenueResult?.Value ?? 0;
+        }
+
     }
 }
