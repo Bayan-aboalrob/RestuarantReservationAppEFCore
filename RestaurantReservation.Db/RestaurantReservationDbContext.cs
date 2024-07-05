@@ -19,6 +19,10 @@ namespace RestaurantReservation.Db
         public DbSet<EmployeeWithRestaurantDetails> EmployeesWithRestaurantDetails { get; set; }
         public DbSet<CustomerWithLargeReservation> CustomersWithLargeReservations { get; set; }
 
+        public RestaurantReservationDbContext(DbContextOptions<RestaurantReservationDbContext> options)
+            : base(options)
+        {
+        }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(
