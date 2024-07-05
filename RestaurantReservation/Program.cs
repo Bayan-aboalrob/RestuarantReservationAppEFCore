@@ -12,6 +12,7 @@ namespace RestaurantReservation
             using (var context = new RestaurantReservationDbContext())
             {
                 await context.Database.EnsureCreatedAsync();
+                /*
 
                 var newCustomer = new Customer
                 {
@@ -82,6 +83,79 @@ namespace RestaurantReservation
                 await DeleteRestaurantAsync(context, restaurantId);
 
                 await DeleteTableAsync(context, tableId);
+                */
+
+                bool exit = false;
+
+                while (!exit)
+                {
+                    Console.WriteLine("\nSelect an operation:");
+                    Console.WriteLine("1. List Managers");
+                    Console.WriteLine("2. Get Reservations by Customer");
+                    Console.WriteLine("3. List Orders and Menu Items by Reservation");
+                    Console.WriteLine("4. List Ordered Menu Items by Reservation");
+                    Console.WriteLine("5. Calculate Average Order Amount by Employee");
+                    Console.WriteLine("6. Exit");
+
+                    var choice = Console.ReadLine();
+
+                    switch (choice)
+                    {
+                        case "1":
+                            await ListManagers(context);
+                            break;
+                        case "2":
+                            Console.Write("Enter Customer ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int customerId))
+                            {
+                                await GetReservationsByCustomer(context, customerId);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Customer ID");
+                            }
+                            break;
+                        case "3":
+                            Console.Write("Enter Reservation ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int reservationId))
+                            {
+                                await ListOrdersAndMenuItems(context, reservationId);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Reservation ID");
+                            }
+                            break;
+                        case "4":
+                            Console.Write("Enter Reservation ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int resId))
+                            {
+                                await ListOrderedMenuItems(context, resId);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Reservation ID");
+                            }
+                            break;
+                        case "5":
+                            Console.Write("Enter Employee ID: ");
+                            if (int.TryParse(Console.ReadLine(), out int employeeId))
+                            {
+                                await CalculateAverageOrderAmount(context, employeeId);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid Employee ID");
+                            }
+                            break;
+                        case "6":
+                            exit = true;
+                            break;
+                        default:
+                            Console.WriteLine("Invalid choice. Please select a valid option.");
+                            break;
+                    }
+                }
 
             }
         }
@@ -724,7 +798,98 @@ namespace RestaurantReservation
             }
         }
 
-
+        static async Task ListManagers(RestaurantReservationDbContext context)
+        {
+            var managers = await context.Employees.Where(e => e.Position == "Manager").ToListAsync();
+            if (managers.Count > 0)
+            {
+                Console.WriteLine("Managers:");
+                foreach (var manager in managers)
+                {
+                    Console.WriteLine($"{manager.FirstName} {manager.LastName}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No managers found.");
+            }
+        }
+        static async Task GetReservationsByCustomer(RestaurantReservationDbContext context, int customerId)
+        {
+            var reservations = await context.Reservations
+                .Where(r => r.CustomerId == customerId)
+                .Include(r => r.Customer)
+                .ToListAsync();
+            if (reservations.Count > 0)
+            {
+                Console.WriteLine($"Reservations for customer {customerId}:");
+                foreach (var reservation in reservations)
+                {
+                    Console.WriteLine($"Reservation ID: {reservation.ReservationId}, Date: {reservation.ReservationDate}, Party Size: {reservation.PartySize}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"No reservations found for customer {customerId}.");
+            }
+        }
+        static async Task ListOrdersAndMenuItems(RestaurantReservationDbContext context, int reservationId)
+        {
+            var orders = await context.Orders
+                .Where(o => o.ReservationId == reservationId)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+                .ToListAsync();
+            if (orders.Count > 0)
+            {
+                Console.WriteLine($"Orders and Menu Items for reservation {reservationId}:");
+                foreach (var order in orders)
+                {
+                    Console.WriteLine($"Order ID: {order.OrderId}, Total Amount: {order.TotalAmount}");
+                    foreach (var orderItem in order.OrderItems)
+                    {
+                        Console.WriteLine($"Menu Item: {orderItem.MenuItem.Name}, Quantity: {orderItem.Quantity}");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"No orders found for reservation {reservationId}.");
+            }
+        }
+        static async Task ListOrderedMenuItems(RestaurantReservationDbContext context, int reservationId)
+        {
+            var orderedMenuItems = await context.Orders
+                .Where(o => o.ReservationId == reservationId)
+                .SelectMany(o => o.OrderItems)
+                .Include(oi => oi.MenuItem)
+                .ToListAsync();
+            if (orderedMenuItems.Count > 0)
+            {
+                Console.WriteLine($"Ordered Menu Items for reservation {reservationId}:");
+                foreach (var orderItem in orderedMenuItems)
+                {
+                    Console.WriteLine($"Menu Item: {orderItem.MenuItem.Name}, Quantity: {orderItem.Quantity}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"No menu items found for reservation {reservationId}.");
+            }
+        }
+        static async Task CalculateAverageOrderAmount(RestaurantReservationDbContext context, int employeeId)
+        {
+            var orders = await context.Orders.Where(o => o.EmployeeId == employeeId).ToListAsync();
+            if (orders.Count > 0)
+            {
+                var averageOrderAmount = orders.Average(o => o.TotalAmount);
+                Console.WriteLine($"Average Order Amount for employee {employeeId}: {averageOrderAmount}");
+            }
+            else
+            {
+                Console.WriteLine($"No orders found for employee {employeeId}.");
+            }
+        }
 
     }
 }
