@@ -1,4 +1,4 @@
-﻿namespace RestaurantReservation.Db
+﻿namespace RestaurantReservation.Db.Models
 {
     public class MenuItem
     {
@@ -13,8 +13,5 @@
         {
             OrderItems = new List<OrderItem>();
         }
-
-
-
     }
 }

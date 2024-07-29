@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-namespace RestaurantReservation.Db
+namespace RestaurantReservation.Db.Models
 {
     public class Order
     {

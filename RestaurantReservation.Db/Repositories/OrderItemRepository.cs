@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using RestaurantReservation.Db.DbContexts;
+using RestaurantReservation.Db.Models;
 
 namespace RestaurantReservation.Db.Repositories
 {
-    public class OrderItemRepository
+    public class OrderItemRepository : IOrderItemRepository
     {
         private readonly RestaurantReservationDbContext _context;
 
@@ -15,66 +13,35 @@ namespace RestaurantReservation.Db.Repositories
             _context = context;
         }
 
-        public async Task AddOrderItemAsync(OrderItem newOrderItem)
+        public async Task<IEnumerable<OrderItem>> GetAllOrderItemsAsync()
         {
-            var existingMenuItem = await _context.MenuItems.FindAsync(newOrderItem.ItemId);
-            if (existingMenuItem == null)
-            {
-                throw new InvalidOperationException("The specified menu item does not exist.");
-            }
+            return await _context.OrderItems.ToListAsync();
+        }
 
-            var existingOrder = await _context.Orders.FindAsync(newOrderItem.OrderId);
-            if (existingOrder == null)
-            {
-                throw new InvalidOperationException("The specified order does not exist.");
-            }
+        public async Task<OrderItem> GetOrderItemByIdAsync(int id)
+        {
+            return await _context.OrderItems.FindAsync(id);
+        }
 
-            _context.OrderItems.Add(newOrderItem);
+        public async Task AddOrderItemAsync(OrderItem orderItem)
+        {
+            _context.OrderItems.Add(orderItem);
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateOrderItemAsync(int orderItemId, int newItemId, int newQuantity, int newOrderId)
+        public async Task UpdateOrderItemAsync(OrderItem orderItem)
         {
-            var orderItem = await _context.OrderItems.FindAsync(orderItemId);
-            if (orderItem != null)
-            {
-                var existingMenuItem = await _context.MenuItems.FindAsync(newItemId);
-                if (existingMenuItem == null)
-                {
-                    throw new InvalidOperationException("The specified menu item does not exist.");
-                }
-
-                var existingOrder = await _context.Orders.FindAsync(newOrderId);
-                if (existingOrder == null)
-                {
-                    throw new InvalidOperationException("The specified order does not exist.");
-                }
-
-                orderItem.ItemId = newItemId;
-                orderItem.Quantity = newQuantity;
-                orderItem.OrderId = newOrderId;
-
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Updated Order Item");
-            }
-            else
-            {
-                throw new KeyNotFoundException("Order Item not found.");
-            }
+            _context.OrderItems.Update(orderItem);
+            await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteOrderItemAsync(int orderItemId)
+        public async Task DeleteOrderItemAsync(int id)
         {
-            var orderItem = await _context.OrderItems.FindAsync(orderItemId);
+            var orderItem = await _context.OrderItems.FindAsync(id);
             if (orderItem != null)
             {
                 _context.OrderItems.Remove(orderItem);
                 await _context.SaveChangesAsync();
-                Console.WriteLine("Deleted Order Item");
-            }
-            else
-            {
-                throw new KeyNotFoundException("Order Item not found.");
             }
         }
     }

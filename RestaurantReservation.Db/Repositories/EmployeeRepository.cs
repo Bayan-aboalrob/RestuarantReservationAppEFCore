@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using RestaurantReservation.Db.DbContexts;
+using RestaurantReservation.Db.Models;
 
-namespace RestaurantReservation.Db.Repositories
+namespace RestaurantReservation.Api.Repositories
 {
-    public class EmployeeRepository
+    public class EmployeeRepository : IEmployeeRepository
     {
         private readonly RestaurantReservationDbContext _context;
 
@@ -15,92 +13,66 @@ namespace RestaurantReservation.Db.Repositories
             _context = context;
         }
 
-        public async Task AddEmployeeAsync(Employee newEmployee)
+        public async Task<IEnumerable<Employee>> GetAllEmployeesAsync()
         {
-            var existingRestaurant = await _context.Restaurants.FindAsync(newEmployee.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                throw new InvalidOperationException("The specified restaurant does not exist.");
-            }
+            return await _context.Employees.Include(e => e.Orders).ToListAsync();
+        }
 
-            var existingEmployee = await _context.Employees
-                .Where(e => e.FirstName == newEmployee.FirstName && e.LastName == newEmployee.LastName && e.RestaurantId == newEmployee.RestaurantId)
-                .FirstOrDefaultAsync();
+        public async Task<Employee> GetEmployeeByIdAsync(int id)
+        {
+            return await _context.Employees.Include(e => e.Orders)
+                                            .FirstOrDefaultAsync(e => e.EmployeeId == id);
+        }
 
-            if (existingEmployee != null)
-            {
-                throw new InvalidOperationException("An employee with the same name already exists in this restaurant.");
-            }
-
-            _context.Employees.Add(newEmployee);
+        public async Task<Employee> CreateEmployeeAsync(Employee employee)
+        {
+            _context.Employees.Add(employee);
             await _context.SaveChangesAsync();
+            return employee;
         }
 
-        public async Task UpdateEmployeeAsync(int employeeId, string newFirstName, string newLastName, string newPosition, int newRestaurantId)
+        public async Task<Employee> UpdateEmployeeAsync(Employee employee)
         {
-            var employee = await _context.Employees.FindAsync(employeeId);
-            if (employee != null)
-            {
-                var existingRestaurant = await _context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    throw new InvalidOperationException("The specified restaurant does not exist.");
-                }
-
-                var existingEmployee = await _context.Employees
-                    .FirstOrDefaultAsync(e => e.FirstName == newFirstName && e.LastName == newLastName && e.RestaurantId == newRestaurantId && e.EmployeeId != employeeId);
-
-                if (existingEmployee != null)
-                {
-                    throw new InvalidOperationException("An employee with the same name already exists in this restaurant.");
-                }
-
-                employee.FirstName = newFirstName;
-                employee.LastName = newLastName;
-                employee.Position = newPosition;
-                employee.RestaurantId = newRestaurantId;
-
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Updated Employee");
-            }
-            else
-            {
-                throw new KeyNotFoundException("Employee not found.");
-            }
+            _context.Employees.Update(employee);
+            await _context.SaveChangesAsync();
+            return employee;
         }
 
-        public async Task DeleteEmployeeAsync(int employeeId)
+        public async Task<bool> DeleteEmployeeAsync(int id)
         {
-            var employee = await _context.Employees
-                .Include(e => e.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+            var employee = await _context.Employees.FindAsync(id);
+            if (employee == null) return false;
 
-            if (employee != null)
-            {
-                foreach (var order in employee.Orders)
-                {
-                    _context.OrderItems.RemoveRange(order.OrderItems);
-                    _context.Orders.Remove(order);
-                }
-
-                _context.Employees.Remove(employee);
-                await _context.SaveChangesAsync();
-            }
-            else
-            {
-                throw new KeyNotFoundException("Employee not found.");
-            }
+            _context.Employees.Remove(employee);
+            await _context.SaveChangesAsync();
+            return true;
         }
-
-        public async Task<List<Employee>> ListManagersAsync()
+        public async Task<IEnumerable<Employee>> GetAllManagersAsync()
         {
-            return await _context.Employees.Where(e => e.Position == "Manager").ToListAsync();
+            return await _context.Employees
+                .Where(e => e.Position == "Manager") // Adjust based on how positions are stored
+                .ToListAsync();
         }
 
-        public async Task<List<EmployeeWithRestaurantDetails>> ListEmployeesWithRestaurantDetailsAsync()
+        public async Task<double> GetAverageOrderAmountByEmployeeIdAsync(int employeeId)
         {
-            return await _context.EmployeesWithRestaurantDetails.ToListAsync();
+            var orders = await _context.Orders
+                .Where(o => o.EmployeeId == employeeId)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+                .ToListAsync();
+
+            if (!orders.Any())
+                return 0;
+
+            var totalAmount = orders.Sum(o => o.OrderItems
+                .Sum(oi => (oi.MenuItem?.Price ?? 0) * oi.Quantity));
+
+            var averageAmount = (double)totalAmount / orders.Count;
+
+            return averageAmount;
         }
+
+
     }
 }

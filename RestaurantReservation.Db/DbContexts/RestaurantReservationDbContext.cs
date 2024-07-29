@@ -1,8 +1,8 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-
-namespace RestaurantReservation.Db
+using RestaurantReservation.Db.Models;
+using RestaurantReservation.DB.Models;
+namespace RestaurantReservation.Db.DbContexts
 {
     public class RestaurantReservationDbContext : DbContext
     {
@@ -18,6 +18,7 @@ namespace RestaurantReservation.Db
         public DbSet<ReservationWithDetails> ReservationsWithDetails { get; set; }
         public DbSet<EmployeeWithRestaurantDetails> EmployeesWithRestaurantDetails { get; set; }
         public DbSet<CustomerWithLargeReservation> CustomersWithLargeReservations { get; set; }
+        public DbSet<User> Users { get; set; }
 
         public RestaurantReservationDbContext(DbContextOptions<RestaurantReservationDbContext> options)
             : base(options)

@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-namespace RestaurantReservation.Db
+namespace RestaurantReservation.Db.Models
 {
     public class Customer
     {
@@ -8,12 +8,6 @@ namespace RestaurantReservation.Db
         public string LastName { get; set; }
         public string Email { get; set; }
         public string PhoneNumber { get; set; }
-        public List<Reservation> Reservations { get; set; }
-        public Customer()
-        {
-            Reservations = new List<Reservation>();
-
-        }
-
+        public List<Reservation> Reservations { get; set; } = new();
     }
 }

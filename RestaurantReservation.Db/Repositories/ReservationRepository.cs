@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using RestaurantReservation.Db.DbContexts;
+using RestaurantReservation.Db.Models;
 
 namespace RestaurantReservation.Db.Repositories
 {
-    public class ReservationRepository
+    public class ReservationRepository : IReservationRepository
     {
         private readonly RestaurantReservationDbContext _context;
 
@@ -15,97 +13,78 @@ namespace RestaurantReservation.Db.Repositories
             _context = context;
         }
 
-        public async Task AddReservationAsync(Reservation newReservation)
+        public async Task<IEnumerable<Reservation>> GetAllReservationsAsync()
         {
-            var existingCustomer = await _context.Customers.FindAsync(newReservation.CustomerId);
-            if (existingCustomer == null)
-            {
-                throw new InvalidOperationException("The specified customer does not exist.");
-            }
+            return await _context.Reservations.ToListAsync();
+        }
 
-            var existingRestaurant = await _context.Restaurants.FindAsync(newReservation.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                throw new InvalidOperationException("The specified restaurant does not exist.");
-            }
+        public async Task<Reservation> GetReservationByIdAsync(int id)
+        {
+            return await _context.Reservations.FindAsync(id);
+        }
 
-            var existingTable = await _context.Tables.FindAsync(newReservation.TableId);
-            if (existingTable == null)
-            {
-                throw new InvalidOperationException("The specified table does not exist.");
-            }
-
-            _context.Reservations.Add(newReservation);
+        public async Task<Reservation> CreateReservationAsync(Reservation reservation)
+        {
+            _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
-            Console.WriteLine("Created Reservation");
+            return reservation;
         }
 
-        public async Task UpdateReservationAsync(int reservationId, DateTime newReservationDate, int newPartySize, int newCustomerId, int newRestaurantId, int newTableId)
+        public async Task<bool> UpdateReservationAsync(int id, Reservation reservation)
         {
-            var reservation = await _context.Reservations.FindAsync(reservationId);
-            if (reservation != null)
+            var existingReservation = await _context.Reservations.FindAsync(id);
+            if (existingReservation == null)
             {
-                var existingCustomer = await _context.Customers.FindAsync(newCustomerId);
-                if (existingCustomer == null)
-                {
-                    throw new InvalidOperationException("The specified customer does not exist.");
-                }
-
-                var existingRestaurant = await _context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    throw new InvalidOperationException("The specified restaurant does not exist.");
-                }
-
-                var existingTable = await _context.Tables.FindAsync(newTableId);
-                if (existingTable == null)
-                {
-                    throw new InvalidOperationException("The specified table does not exist.");
-                }
-
-                reservation.ReservationDate = newReservationDate;
-                reservation.PartySize = newPartySize;
-                reservation.CustomerId = newCustomerId;
-                reservation.RestaurantId = newRestaurantId;
-                reservation.TableId = newTableId;
-
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Updated Reservation");
+                return false;
             }
-            else
-            {
-                throw new KeyNotFoundException("Reservation not found.");
-            }
+
+            existingReservation.CustomerId = reservation.CustomerId;
+            existingReservation.TableId = reservation.TableId;
+            existingReservation.ReservationDate = reservation.ReservationDate;
+            existingReservation.PartySize = reservation.PartySize;
+
+            _context.Reservations.Update(existingReservation);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task DeleteReservationAsync(int reservationId)
+        public async Task<bool> DeleteReservationAsync(int id)
         {
-            var reservation = await _context.Reservations
-                .Include(r => r.Orders)
-                .ThenInclude(o => o.OrderItems)
-                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
-
-            if (reservation != null)
+            var reservation = await _context.Reservations.FindAsync(id);
+            if (reservation == null)
             {
-                foreach (var order in reservation.Orders)
-                {
-                    _context.OrderItems.RemoveRange(order.OrderItems);
-                    _context.Orders.Remove(order);
-                }
+                return false;
+            }
 
-                _context.Reservations.Remove(reservation);
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Deleted Reservation");
-            }
-            else
-            {
-                throw new KeyNotFoundException("Reservation not found.");
-            }
+            _context.Reservations.Remove(reservation);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task<List<ReservationWithDetails>> ListReservationsWithDetailsAsync()
+        public async Task<IEnumerable<Reservation>> GetReservationsByCustomerIdAsync(int customerId)
         {
-            return await _context.ReservationsWithDetails.ToListAsync();
+            return await _context.Reservations
+                .Where(r => r.CustomerId == customerId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Order>> GetOrdersByReservationIdAsync(int reservationId)
+        {
+            return await _context.Orders
+                .Where(o => o.ReservationId == reservationId)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<MenuItem>> GetMenuItemsByReservationIdAsync(int reservationId)
+        {
+            return await _context.OrderItems
+                .Where(oi => oi.Order.ReservationId == reservationId)
+                .Include(oi => oi.MenuItem)
+                .Select(oi => oi.MenuItem)
+                .Distinct()
+                .ToListAsync();
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace RestaurantReservation.Db
+namespace RestaurantReservation.Db.Models
 {
     public class Employee
     {

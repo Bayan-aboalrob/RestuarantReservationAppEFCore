@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
+using RestaurantReservation.Db.DbContexts;
+using RestaurantReservation.Db.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RestaurantReservation.Db.Repositories
+namespace RestaurantReservation.Api.Repositories
 {
-    public class MenuItemRepository
+    public class MenuItemRepository : IMenuItemRepository
     {
         private readonly RestaurantReservationDbContext _context;
 
@@ -15,76 +16,42 @@ namespace RestaurantReservation.Db.Repositories
             _context = context;
         }
 
-        public async Task AddMenuItemAsync(MenuItem newMenuItem)
+        public async Task<IEnumerable<MenuItem>> GetMenuItemsByRestaurantIdAsync(int restaurantId)
         {
-            var existingRestaurant = await _context.Restaurants.FindAsync(newMenuItem.RestaurantId);
-            if (existingRestaurant == null)
-            {
-                throw new InvalidOperationException("The specified restaurant does not exist.");
-            }
+            return await _context.MenuItems
+                .Where(m => m.RestaurantId == restaurantId)
+                .ToListAsync();
+        }
 
-            var existingMenuItem = await _context.MenuItems
-                .Where(m => m.Name == newMenuItem.Name && m.RestaurantId == newMenuItem.RestaurantId)
-                .FirstOrDefaultAsync();
+        public async Task<MenuItem> GetMenuItemByIdAsync(int id)
+        {
+            return await _context.MenuItems.FindAsync(id);
+        }
 
-            if (existingMenuItem != null)
-            {
-                throw new InvalidOperationException("A menu item with the same name already exists in this restaurant.");
-            }
-
-            _context.MenuItems.Add(newMenuItem);
+        public async Task<MenuItem> CreateMenuItemAsync(MenuItem menuItem)
+        {
+            _context.MenuItems.Add(menuItem);
             await _context.SaveChangesAsync();
+            return menuItem;
         }
 
-        public async Task UpdateMenuItemAsync(int menuItemId, string newName, string newDescription, decimal newPrice, int newRestaurantId)
+        public async Task<MenuItem> UpdateMenuItemAsync(MenuItem menuItem)
         {
-            var menuItem = await _context.MenuItems.FindAsync(menuItemId);
-            if (menuItem != null)
-            {
-                var existingRestaurant = await _context.Restaurants.FindAsync(newRestaurantId);
-                if (existingRestaurant == null)
-                {
-                    throw new InvalidOperationException("The specified restaurant does not exist.");
-                }
-
-                var existingMenuItem = await _context.MenuItems
-                    .FirstOrDefaultAsync(m => m.Name == newName && m.RestaurantId == newRestaurantId && m.ItemId != menuItemId);
-
-                if (existingMenuItem != null)
-                {
-                    throw new InvalidOperationException("A menu item with the same name already exists in this restaurant.");
-                }
-
-                menuItem.Name = newName;
-                menuItem.Description = newDescription;
-                menuItem.Price = newPrice;
-                menuItem.RestaurantId = newRestaurantId;
-
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Updated Menu Item");
-            }
-            else
-            {
-                throw new KeyNotFoundException("Menu Item not found.");
-            }
+            _context.MenuItems.Update(menuItem);
+            await _context.SaveChangesAsync();
+            return menuItem;
         }
 
-        public async Task DeleteMenuItemAsync(int menuItemId)
+        public async Task<bool> DeleteMenuItemAsync(int id)
         {
-            var menuItem = await _context.MenuItems
-                .Include(m => m.OrderItems)
-                .FirstOrDefaultAsync(m => m.ItemId == menuItemId);
-
+            var menuItem = await _context.MenuItems.FindAsync(id);
             if (menuItem != null)
             {
-                _context.OrderItems.RemoveRange(menuItem.OrderItems);
                 _context.MenuItems.Remove(menuItem);
                 await _context.SaveChangesAsync();
+                return true;
             }
-            else
-            {
-                throw new KeyNotFoundException("Menu Item not found.");
-            }
+            return false;
         }
     }
 }
